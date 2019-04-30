@@ -281,6 +281,7 @@ browser.
 	    webid_tls_endpoint="https://webid-tls.example.com/auth/webid-tls"
 	Access-Control-Allow-Origin: https://other.example.com
 	Access-Control-Expose-Headers: WWW-Authenticate
+	Date: Tue, 30 Apr 2019 20:22:45 GMT
 	Content-type: text/html
 	
 	<html>Human first-party login page...</html>
@@ -371,6 +372,7 @@ and the application identifier.
 	Content-type: application/json; charset=utf-8
 	Cache-control: no-cache, no-store
 	Access-Control-Allow-Origin: https://other.example.com
+	Date: Tue, 30 Apr 2019 20:22:46 GMT
 	
 	{
 		"access_token": "gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ",
@@ -437,6 +439,7 @@ into at least the WebID and the application identifier.
 
 	HTTP/2 302
 	Location: https://other.example.com/app/getbearer#access_token=gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ&expires_in=1800&state=EehJc1e8dDGz2iazKHy-1VJyWgMmnovRsbeEuqfZ
+	Date: Tue, 30 Apr 2019 20:22:46 GMT
 
 The agent can now use this `access_token` as a Bearer token in the `Authorization`
 header for requests in the same protection space at the original request URI's
