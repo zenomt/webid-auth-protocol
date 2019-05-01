@@ -54,8 +54,14 @@ an attacker or even another legitimate application more privilege than is
 desirable in this situation.
 
 At this time, browser-based applications can only be identified to resource
-servers via the `Origin` HTTP header. This may be insufficient when multiple
-applications are hosted in the same origin (for example, github.com).
+servers via the `Origin` HTTP header (except for the special case below).
+This may be insufficient when multiple applications are hosted in the same
+origin (for example, github.com).
+
+The OP can return an `access_token` to the agent along with the `id_token`.
+Only in the special case where the resource server to be accessed is *also*
+the user's OP, the `access_token` can identify its bearer to the
+OP-plus-resource-server, and identify the agent to which it was issued.
 
 ### WebID-TLS
 
