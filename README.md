@@ -59,9 +59,10 @@ This may be insufficient when multiple applications are hosted in the same
 origin (for example, github.com).
 
 The OP can return an `access_token` to the agent along with the `id_token`.
-Only in the special case where the resource server to be accessed is *also*
-the user's OP, the `access_token` can identify its bearer to the
-OP-plus-resource-server, and identify the agent to which it was issued.
+Only in the special case where the resource server to be accessed by a user
+is *also* that user's OP, the `access_token` can identify its bearer to the
+OP-plus-resource-server as the local user, and identify the agent to which
+it was issued.
 
 ### WebID-TLS
 
