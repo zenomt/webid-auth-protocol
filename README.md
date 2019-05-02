@@ -179,11 +179,11 @@ parameters for `GET`:
   - `agent_nonce`: Required: An arbitrary string chosen by the agent, used
     as described below;
 
-  - `uri`: Required: The fully-qualified URI, including scheme, host, port
-    (if specified or different from the default), path, and query, but not
-    including fragment identifier, corresponding to the original request that
-    resulted in the HTTP `401` response. This parameter **MUST NOT** include
-    a fragment identifier;
+  - `uri`: Required: The [absolute URI][], including scheme, authority
+    (host and optional port), path, and query, but not including fragment
+    identifier, corresponding to the original request that resulted in the
+    HTTP `401` response. This parameter **MUST NOT** include a fragment
+    identifier;
 
   - `redirect_uri`: Optional: If present, the response will be made in the
     form of an HTTP `302` redirect to this URI; otherwise the response will
@@ -551,6 +551,7 @@ request includes the `uri` just like the `token_endpoint` flow.
   [WebID-OIDC]:       https://github.com/solid/webid-oidc-spec
   [WebID-TLS]:        https://github.com/solid/solid-spec/blob/master/authn-webid-tls.md
   [WebID]:            https://www.w3.org/2005/Incubator/webid/spec/identity/
+  [absolute URI]:     https://tools.ietf.org/html/rfc3986#section-4.3
   [http2-norenego]:   https://tools.ietf.org/html/rfc7540#section-9.2.1
   [nginx]:            https://nginx.org/
   [protection space]: https://tools.ietf.org/html/rfc7235#section-2.2
