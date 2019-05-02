@@ -234,11 +234,11 @@ parameters for `GET`:
 
   - `nonce`: Required: The nonce from the `WWW-Authenticate` challenge;
 
-  - `uri`: Required: The fully-qualified URI, including scheme, host, port
-    (if specified or different from the default), path, and query, but not
-    including fragment identifier, corresponding to the original request that
-    resulted in the HTTP `401` response. This parameter **MUST NOT** include
-    a fragment identifier;
+  - `uri`: Required: The [absolute URI][], including scheme, authority
+    (host and optional port), path, and query, but not including fragment
+    identifier, corresponding to the original request that resulted in the
+    HTTP `401` response. This parameter **MUST NOT** include a fragment
+    identifier;
 
   - `redirect_uri`: Optional: If present, the response will be made in the
     form of an HTTP `302` redirect to this URI; otherwise the response will
@@ -306,7 +306,7 @@ user's OP, and can request additional `id_token`s through a normal OIDC
 authorization workflow.
 
 The agent generates a cryptographically strong `agent_nonce`. `uri` is
-the fully qualified URI for the original request, as detailed in Syntax.
+the absolute URI for the original request, as detailed in Syntax.
 
 The agent calculates
 
@@ -345,8 +345,8 @@ The server verifies this request:
      server, not too far in the past, hasn't been redeemed yet, and was issued
      for a request for `uri`);
 
-  2. Verifies that `uri` is for this server and the protection space for
-     which this endpoint is responsible;
+  2. Verifies that `uri` is an absolute URI for this server and the protection
+     space for which this endpoint is responsible;
 
   3. Parses `id_token`, extracting the WebID, `iss`uer, `aud`ience, and `nonce` as
      the `proof_nonce`;
@@ -426,8 +426,9 @@ The server verifies the request:
      by the original server, not too far in the past, and hasn't been redeemed
      yet);
 
-  2. Verifies that `uri` is in the protection space for which this endpoint
-     is responsible, and if possible that `uri` corresponds with the `nonce`;
+  2. Verifies that `uri` is an absolute URI and is in the protection space
+     for which this endpoint is responsible, and if possible that `uri`
+     corresponds with the `nonce`;
 
   3. Verifies, [in the normal way][WebID-TLS], the WebID by extracting
      the public key from the client certificate used in the TLS connection,
