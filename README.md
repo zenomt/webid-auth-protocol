@@ -461,8 +461,11 @@ origin.
 Security Considerations
 -----------------------
 Having a bearer token issued from this protocol doesn't guarantee access to
-the requested resource. Access control facilities can use the identity
-associated with the bearer token to determine access rights.
+the requested resource. Access control facilities in the resource server can
+use the identity associated with the bearer token and other considerations
+to determine access rights.
+
+### Redirect Workflow Considerations
 
 Care **SHOULD** be taken so that the `Location` header in response to the
 above API endpoints is not exposed to browser scripts in redirect-type
@@ -471,17 +474,28 @@ to only allow a browser application to obtain the returned parameters if the
 redirect was actually followed, indicating the `redirect_uri` is part of the
 application. If the `Location` header can be read directly by the browser
 script from an `XMLHTTPRequest` or `Fetch` response, any browser application can
-impersonate any other browser application.
+impersonate any other browser application to the above API endpoints.
 
 The `redirect_uri` (either as part of this API flow or extracted from an
 `id_token`) is not truly secure, but is only a strong indicator that the
 `redirect_uri` was used in a browser-based application. Non-browser applications
 (such as native applications, servers, robots, or any other agent) are not
-subject to the Same-Origin policy or Cross-Origin Resource Sharing (CORS)
-restrictions, and have full access to all request and response headers of all
-HTTP transactions (including ones to OIDC Providers), and therefore can
-impersonate any `redirect_uri` (and therefore any application identifier)
-whether it is associated with the application or not.
+subject to the [Same-Origin policy][same-origin] or
+[Cross-Origin Resource Sharing (CORS)][CORS] restrictions, and have full
+access to all request and response headers of all HTTP transactions (including
+ones to OIDC Providers), and therefore can impersonate any `redirect_uri`
+(and therefore any application identifier) whether it is associated with the
+application or not.
+
+The presence and use of a `redirect_uri` with the above APIs (either directly
+or in an `id_token`) indicates only that the authenticated WebID asserts that
+the URI identifies an application she has consented to use. It does not
+guarantee that any particular URI was actually followed. The WebID making
+this assertion is the only party that should assign a trustability to any
+`redirect_uri`.  This distinction **SHOULD** be considered when making access
+control decisions.
+
+### Nonce Considerations
 
 Nonces issued by servers in the `WWW-Authenticate` response header **SHOULD**
 have the following properties:
@@ -542,8 +556,36 @@ this token to Rogue which would then be able to use it to access Real.
 To ensure Real and User are talking about the same resource, the `webid_tls_endpoint`
 request includes the `uri` just like the `token_endpoint` flow.
 
+### Man-In-The-Middle With HTTP Redirects
+
+User **SHOULD** take care to contain disclosure of the `access_token` to the
+protection space for which it was issued.  The HTTP `WWW-Authenticate` `realm`
+parameter doesn't describe the extent of the protection space at the origin
+in a standard way.  Therefore, the extent of the protection space might not
+be known ahead of time, so at the very least, User **MUST NOT** disclose the
+`access_token` beyond the origin of the `uri` parameter used to obtain it.
+
+Rogue could use an HTTP `3XX` response to redirect User to access a protected
+resource at Real. Depending on the APIs Real's agent uses, the redirect might
+be followed automatically or the `Location` might be exposed to the agent to
+be followed under manual control.
+
+If the redirect is followed automatically, `uri` will be for Rogue, and Real
+will reject the token request.
+
+If the redirect is followed manually by User, `uri` will be for Real, and
+User will receive an `access_token`. In this case, User knows the protection
+space is for Real and not Rogue (assuming they have different origins, see
+below). User **MUST** notice that Real's protection space is different than
+Rogue's, and **MUST NOT** send the token to Rogue for future requests.
+
+If Real and Rogue have the same origin, Rogue can obtain an `access_token`
+for Real as User, as detailed above. However, if Real and Rogue have the same
+origin, [you are having a bad problem][same-origin] and
+[you will not go to space today][up goer five].
 
 
+  [CORS]:             https://www.w3.org/TR/cors/
   [OIDC Discovery]:   https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
   [OIDC-SelfIssued]:  https://openid.net/specs/openid-connect-core-1_0.html#SelfIssued
   [RFC2119]:          https://tools.ietf.org/html/rfc2119
@@ -556,3 +598,5 @@ request includes the `uri` just like the `token_endpoint` flow.
   [http2-norenego]:   https://tools.ietf.org/html/rfc7540#section-9.2.1
   [nginx]:            https://nginx.org/
   [protection space]: https://tools.ietf.org/html/rfc7235#section-2.2
+  [same-origin]:      https://tools.ietf.org/html/rfc6454#section-3
+  [up goer five]:     https://xkcd.com/1133/
