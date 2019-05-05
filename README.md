@@ -22,6 +22,30 @@ NOT**", "**SHOULD**", "**SHOULD NOT**", "**RECOMMENDED**", "**NOT RECOMMENDED**"
 described in BCP 14 \[[RFC2119][]\] \[[RFC8174][]\] when, and only when, they
 appear in all capitals, as shown here.
 
+Note to Reviewers and Implementers
+----------------------------------
+This memo is a work in progress. There are two main issues with its current
+form that the author intends to address:
+
+  1. Every new challenge from a protection space requires a fresh contact
+     with the OIDC Provider and the issuance of a new `id_token`:
+    - This might be an unaceptable load on the Provider;
+    - This requires at least one round-trip to the Provider for every
+      challenge;
+    - In native or mobile applications that use the user's trusted web
+      browser to interact with the Provider, this is either unworkable, or
+      results in an unacceptable user experience;
+  2. The construction of the `proof_nonce` seems ad hoc, which is hard to
+     justify.
+
+The use of [Proof-of-Possession keys][RFC7800] (PoP) is being investigated,
+particularly as this concept is already being used in some form in the current
+Solid reference implementation. PoP can address issue 1.
+
+The `proof_nonce` should be replaced by a JWT, whose claims include challenge
+items (the challenge `nonce`, the target `uri`, and an `agent_nonce`) among
+others, signed by the PoP key.
+
 The Problems
 ------------
 
@@ -589,6 +613,7 @@ origin, [you are having a bad problem][same-origin] and
   [OIDC Discovery]:   https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
   [OIDC-SelfIssued]:  https://openid.net/specs/openid-connect-core-1_0.html#SelfIssued
   [RFC2119]:          https://tools.ietf.org/html/rfc2119
+  [RFC7800]:          https://tools.ietf.org/html/rfc7800
   [RFC8174]:          https://tools.ietf.org/html/rfc8174
   [Solid]:            https://github.com/solid
   [WebID-OIDC]:       https://github.com/solid/webid-oidc-spec
