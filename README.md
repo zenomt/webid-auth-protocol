@@ -29,12 +29,12 @@ form that the author intends to address:
 
   1. Every new challenge from a protection space requires a fresh contact
      with the OIDC Provider and the issuance of a new `id_token`:
-    - This might be an unaceptable load on the Provider;
-    - This requires at least one round-trip to the Provider for every
-      challenge;
-    - In native or mobile applications that use the user's trusted web
-      browser to interact with the Provider, this is either unworkable, or
-      results in an unacceptable user experience;
+     - This might be an unaceptable load on the Provider;
+     - This requires at least one round-trip to the Provider for every
+       challenge;
+     - In native or mobile applications that use the user's trusted web
+       browser to interact with the Provider, this is either unworkable, or
+       results in an unacceptable user experience;
   2. The construction of the `proof_nonce` seems ad hoc, which is hard to
      justify.
 
