@@ -68,8 +68,8 @@ There are a number of issues with this solution:
     efficient or ideal;
 
   - (Related) in a traditional OAuth scenario where the resource server and
-    the authorization server are coupled, all parties (authorization server
-    + resource server, and app/agent) are involved when issuing an access
+    the authorization server are coupled, all parties (authorization server +
+    resource server, and app/agent) are involved when issuing an access
     token.  With this solution, the resource server can only passively receive
     and validate an access token with no opportunity to influence its issuance;
 
@@ -87,7 +87,7 @@ There are a number of issues with this solution:
   - *POPTokens* can be big, which can be a lot of overhead for every request.
     Even with HTTP/2+ header compression, the token is still a logical part
     of every request's header set, which affects downstream request processing
-    in common web application server deployments.
+    in common web application server architectures.
 
 At this time, browser-based applications can only be identified to resource
 servers via the `Origin` HTTP header (except in the special case where the
@@ -143,7 +143,7 @@ and architectural constraints.
   - Three new parameters to the `WWW-Authenticate` response header for
     the `Bearer` method, and supplemental semantics;
 
-  - An API endpoint for exchanging a *POPToken* for an access token;
+  - An API endpoint for exchanging a proof of possession for an access token;
 
   - Supplemental methods for verifying the `id_token`;
 
@@ -213,7 +213,7 @@ interop constraints (RS256?).
 ### Modified Proof of Possession Token
 
 This section completely specifies a Proof of Possession Token format for use
-in this protocol. This format is a modification of the bespoke *POPTokens*
+in this protocol. This format is a modest modification of the bespoke *POPTokens*
 currently in use in the Solid reference implementation, as determined from
 source code inspection.
 
@@ -232,7 +232,7 @@ the `id_token`'s confirmation key, and comprising the following claims:
     as described above, and otherwise valid to identify the user requesting
     access;
 
-  - `iss`: Required: The issuer of this proof-token, which **MUST** be the
+  - `iss`: Required: The issuer of this *proof-token*, which **MUST** be the
     authorized party to which the `id_token` was issued. That is, `iss`
     **MUST** be identical to the `id_token`'s `azp` claim if present, otherwise
     `iss` **MUST** be present in the `id_token`'s `aud` claim.
@@ -322,7 +322,7 @@ A TLS client certificate is **REQUIRED** when communicating with this API
 endpoint. That means the API endpoint will probably be at a different origin
 from the original URI.
 
-A successful response is made in the same manner as one for the `token_endpoint`.
+A successful response is made in the same manner as one for the `pop_endpoint`.
 
 TBD: error response.
 
@@ -505,7 +505,7 @@ into at least the WebID and the application identifier.
 
 	HTTP/2 302
 	Location: https://other.example.com/app/getbearer#access_token=gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ&expires_in=1800&state=EehJc1e8dDGz2iazKHy-1VJyWgMmnovRsbeEuqfZ
-	Date: Tue, 30 Apr 2019 20:22:46 GMT
+	Date: Mon,  6 May 2019 01:48:50 GMT
 
 The agent can now use this `access_token` as a Bearer token in the `Authorization`
 header for requests in the same protection space at the original request URI's
