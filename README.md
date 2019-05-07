@@ -207,8 +207,11 @@ delays to application response can worsen the user's experience.
 ### Include `cnf` (Confirmation Key) Claim in OIDC `id_token`
 
 The WebID-OIDC portion of this protocol REQUIRES that the `id_token` contain
-a [`cnf`][RFC7800] claim comprising an asymmetric public key as a `jwk`.  TBD
-interop constraints (RS256?).
+a [`cnf`][RFC7800] claim comprising an asymmetric public key as a `jwk`. The
+method by which an agent requests the addition of a `cnf` claim in an `id_token`
+is not yet standardized in OIDC, but will probably be similar to the method
+described in [draft-ietf-oauth-pop-key-distribution][pop-key-dist].
+TBD interop constraints (RS256?).
 
 ### Modified Proof of Possession Token
 
@@ -640,6 +643,7 @@ origin, [you are having a bad problem][same-origin] and
   [absolute URI]:     https://tools.ietf.org/html/rfc3986#section-4.3
   [http2-norenego]:   https://tools.ietf.org/html/rfc7540#section-9.2.1
   [nginx]:            https://nginx.org/
+  [pop-key-dist]:     https://tools.ietf.org/html/draft-ietf-oauth-pop-key-distribution-07#section-4.2
   [protection space]: https://tools.ietf.org/html/rfc7235#section-2.2
   [same-origin]:      https://tools.ietf.org/html/rfc6454#section-3
   [up goer five]:     https://xkcd.com/1133/
