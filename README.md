@@ -22,30 +22,6 @@ NOT**", "**SHOULD**", "**SHOULD NOT**", "**RECOMMENDED**", "**NOT RECOMMENDED**"
 described in BCP 14 \[[RFC2119][]\] \[[RFC8174][]\] when, and only when, they
 appear in all capitals, as shown here.
 
-Note to Reviewers and Implementers
-----------------------------------
-This memo is a work in progress. There are two main issues with its current
-form that the author intends to address:
-
-  1. Every new challenge from a protection space requires a fresh contact
-     with the OIDC Provider and the issuance of a new `id_token`:
-     - This might be an unaceptable load on the Provider;
-     - This requires at least one round-trip to the Provider for every
-       challenge;
-     - In native or mobile applications that use the user's trusted web
-       browser to interact with the Provider, this is either unworkable, or
-       results in an unacceptable user experience;
-  2. The construction of the `proof_nonce` seems ad hoc, which is hard to
-     justify.
-
-The use of [Proof-of-Possession keys][RFC7800] (PoP) is being investigated,
-particularly as this concept is already being used in some form in the current
-Solid reference implementation. PoP can address issue 1.
-
-The `proof_nonce` should be replaced by a JWT, whose claims include challenge
-items (the challenge `nonce`, the target `uri`, and an `agent_nonce`) among
-others, signed by the PoP key.
-
 The Problems
 ------------
 
@@ -61,32 +37,63 @@ return a signed `id_token` to the RP, which can be verified and the user
 considered logged in (for example, by the RP setting a cookie in the user's
 browser).
 
-In some cases (and what is expected to eventually be the common case), the
-RP will be an in-browser Javascript-based application, and this application
-will attempt to access resources on other servers (the user's or other PODs,
-other web servers, etc) on behalf of the user. If any of those remote resources
-are restricted, today the user must log in directly to the remote server(s)
-as RPs with her OP. This can be tedious (or unmanageable) for the user if the
-number of servers to be contacted is large (for example, in a "social news
-feed" type application that retrieves and collates social media postings from
-all of the user's friends). The OP selection step is typically HTML and
-Javascript based in a browser page, and doesn't lend itself to use by automatic
-or robotic agents.  Furthermore, having a full directly-logged-in status with
-the RP (with the status maintained for example in a browser cookie) may not
-be desirable, as Cross-Site Request Forgery attacks, among others, may grant
-an attacker or even another legitimate application more privilege than is
-desirable in this situation.
+In what is expected to eventually be the common case, the RP will be an
+in-browser Javascript-based application, and this application will attempt
+to access resources on other servers (the user's or other PODs, other web
+servers, etc) on behalf of the user.
+
+Today, the Solid reference implementation addresses this case by using a
+bespoke *Proof of Possession Token (POPToken)* directly as an HTTP Authorization
+[Bearer token][RFC6750]. Here, a *POPToken* is a [JWT][RFC7519] containing
+an OIDC `id_token` (which itself is independently validated and which bears
+a [Proof of Possession key][RFC7800]), an `aud`ience binding it to the origin
+of the resource being accessed, and an `iss`uer being the client to which the
+`id_token` was issued.
+
+There are a number of issues with this solution:
+
+  - There is no notion of an independent "session" at the resource server:
+    * An access grant can't be for longer or shorter than the token's validity
+      period;
+    * There's no way to "log out" or revoke access for that token without
+      blacklisting it until it expires;
+    * There's no opportunity to directly challenge the agent to sign an
+      arbitrary value of the resource server's choice in order to prove current
+      control of the proof-of-possession key;
+
+  - In a traditional OAuth scenario, the resource server and the authorization
+    server are coupled, and access tokens can be structured for efficient
+    validation and use by the resource server; here the resource server must
+    accept the *POPToken* format when processing all requests even if that isn't
+    efficient or ideal;
+
+  - (Related) in a traditional OAuth scenario where the resource server and
+    the authorization server are coupled, all parties (authorization server
+    + resource server, and app/agent) are involved when issuing an access
+    token.  With this solution, the resource server can only passively receive
+    and validate an access token with no opportunity to influence its issuance;
+
+  - The same access token is usable for every resource at an origin, whether
+    or not that is appropriate to the security policies for every
+    [protection space][] at that origin. A new access token could be issued
+    for each request, bound specifically to the URI being accessed, but this
+    would incur a large computational cost at the agent and resource server
+    (see next item);
+
+  - A *POPToken* is expensive to validate on every request. Validation decisions
+    could be cached, keyed on the entire token, but this is only practical if
+    the same token is used on every request;
+
+  - *POPTokens* can be big, which can be a lot of overhead for every request.
+    Even with HTTP/2+ header compression, the token is still a logical part
+    of every request's header set, which affects downstream request processing
+    in common web application server deployments.
 
 At this time, browser-based applications can only be identified to resource
-servers via the `Origin` HTTP header (except for the special case below).
-This may be insufficient when multiple applications are hosted in the same
-origin (for example, github.com).
+servers via the `Origin` HTTP header (except in the special case where the
+OP and the resource server are coupled).  This may be insufficient when
+multiple applications are hosted in the same origin (for example, github.com).
 
-The OP can return an `access_token` to the agent along with the `id_token`.
-Only in the special case where the resource server to be accessed by a user
-is *also* that user's OP, the `access_token` can identify its bearer to the
-OP-plus-resource-server as the local user, and identify the agent to which
-it was issued.
 
 ### WebID-TLS
 
@@ -125,17 +132,27 @@ cookie-based issues described above for WebID-OIDC first-party logins.
 
 The Protocol
 ------------
-*WebID HTTP Authorization Protocol* comprises the following components:
+This memo proposes a solution to the above issues. Most importantly, it
+provides a mechanism for the resource server to directly challenge the agent
+to prove control of a POP Key, and for a resource server (or its authorization
+designate) to issue access tokens that are tailored for its unique operational
+and architectural constraints.
 
-  - A supplemental behavior for WebID-OIDC OPs to include the `redirect_uri`
-    in the `aud`ience of the `id_token` in certain circumstances;
+*WebID HTTP Authorization Protocol* comprises the following components:
 
   - Three new parameters to the `WWW-Authenticate` response header for
     the `Bearer` method, and supplemental semantics;
 
-  - An API endpoint for exchanging an OIDC `id_token` for an access token;
+  - An API endpoint for exchanging a *POPToken* for an access token;
 
   - Supplemental methods for verifying the `id_token`;
+
+  - A supplemental behavior for WebID-OIDC OPs to include the `redirect_uri`
+    in the `aud`ience of the `id_token` in certain circumstances, to be used
+    as an application identity (with caveats);
+
+  - A token delivery mode with which to establish an application identity
+    (with caveats);
 
   - An API endpoint for obtaining an access token when using WebID-TLS;
 
@@ -143,6 +160,23 @@ The Protocol
 
 Syntax
 ------
+
+### `WWW-Authenticate` Parameters for `Bearer` Method
+
+A resource server, to challenge an unauthorized request using this protocol,
+will employ a combination of the following parameters in a `WWW-Authenticate`
+header returned in an HTTP `401` response to a request:
+
+  - `scope`: For challenges according to this protocol, the `scope`
+    parameter **SHALL** include at least the `openid` and `webid` scopes;
+
+  - `nonce`: This parameter conveys an opaque challenge string to be used as
+    described below;
+
+  - `pop_endpoint`: The URI of the WebID-OIDC POP Token exchange endpoint, if
+    available;
+
+  - `webid_tls_endpoint`: The URI of the WebID-TLS token endpoint, if available.
 
 ### Include `redirect_uri` in OIDC `id_token`
 
@@ -170,44 +204,57 @@ frames that obfuscate the program's operation (vs direct HTTP transactions),
 and add additional round-trip times and delays to the transaction. Additional
 delays to application response can worsen the user's experience.
 
-### `WWW-Authenticate` Parameters for `Bearer` Method
+### Include `cnf` (Confirmation Key) Claim in OIDC `id_token`
 
-A resource server, to challenge an unauthorized request using this protocol,
-will employ a combination of the following parameters in a `WWW-Authenticate`
-header returned in an HTTP `401` response to a request:
+The WebID-OIDC portion of this protocol REQUIRES that the `id_token` contain
+a [`cnf`][RFC7800] claim comprising an asymmetric public key as a `jwk`.  TBD
+interop constraints (RS256?).
 
-  - `scope`: For challenges according to this protocol, the `scope`
-    parameter **SHALL** include at least the `openid` and `webid` scopes;
+### Modified Proof of Possession Token
 
-  - `nonce`: This parameter conveys an opaque challenge string to be used as
-    described below;
+This section completely specifies a Proof of Possession Token format for use
+in this protocol. This format is a modification of the bespoke *POPTokens*
+currently in use in the Solid reference implementation, as determined from
+source code inspection.
 
-  - `token_endpoint`: The URI of the WebID-OIDC token exchange endpoint, if
-    available;
+The Proof of Possession Token (*proof-token*) is a [JWT][RFC7519], signed by
+the `id_token`'s confirmation key, and comprising the following claims:
 
-  - `webid_tls_endpoint`: The URI of the WebID-TLS token endpoint, if available.
-
-### `token_endpoint` API Parameters
-
-In order to avoid leaving a signed `id_token` and other sensitive parameters
-in web server logs, the agent **SHOULD** access this API by HTTP `POST` method,
-but `GET` **MUST** also be supported by the server. The API takes the following
-parameters, either in the request body as Content-Type
-`application/x-www-form-urlencoded` format for `POST`, or as URI query
-parameters for `GET`:
-
-  - `id_token`: Required: A WebID-OIDC `id_token` as described below;
+  - `aud`: Required: The [absolute URI][], including scheme, authority
+    (host and optional port), path, and query, but not including fragment
+    identifier, corresponding to the original request that resulted in the
+    HTTP `401` response. This claim **MUST NOT** include a fragment identifier.
+    If this claim is an array, it **MUST** have exactly one element;
 
   - `nonce`: Required: The nonce from the `WWW-Authenticate` challenge;
 
-  - `agent_nonce`: Required: An arbitrary string chosen by the agent, used
-    as described below;
+  - `id_token`: Required: A WebID-OIDC `id_token` containing a `cnf` claim
+    as described above, and otherwise valid to identify the user requesting
+    access;
 
-  - `uri`: Required: The [absolute URI][], including scheme, authority
-    (host and optional port), path, and query, but not including fragment
-    identifier, corresponding to the original request that resulted in the
-    HTTP `401` response. This parameter **MUST NOT** include a fragment
-    identifier;
+  - `iss`: Required: The issuer of this proof-token, which **MUST** be the
+    authorized party to which the `id_token` was issued. That is, `iss`
+    **MUST** be identical to the `id_token`'s `azp` claim if present, otherwise
+    `iss` **MUST** be present in the `id_token`'s `aud` claim.
+
+  - `iat`: Required: This claim **MUST NOT** be before the `iat` claim
+    or the `nbf` claim of the `id_token`;
+
+  - `exp`: Required: This claim **MUST NOT** be after the `exp` claim of
+    the `id_token`;
+
+  - `jti`: Recommended: Use of this claim is **RECOMMENDED** so that the agent
+    can salt the token.
+
+### `pop_endpoint` API Parameters
+
+In order to avoid leaving sensitive information in web server logs, the agent
+**SHOULD** access this API by HTTP `POST` method, but `GET` **MUST** also be
+supported by the server. The API takes the following parameters, either in
+the request body as Content-Type `application/x-www-form-urlencoded` format
+for `POST`, or as URI query parameters for `GET`:
+
+  - `pop_token`: Required: A modified *proof-token* as described above;
 
   - `redirect_uri`: Optional: If present, the response will be made in the
     form of an HTTP `302` redirect to this URI; otherwise the response will
@@ -297,7 +344,7 @@ The resource server does not allow this request without authorization.  It
 generates an unguessable, opaque nonce that the server **SHOULD** be able to
 later recognize as having generated. The server responds with an HTTP `401`
 Unauthorized message, and includes the [protection space][] (`realm`), this
-nonce, the appropriate scopes, and the `token_endpoint` and `webid_tls_endpoint`
+nonce, the appropriate scopes, and the `pop_endpoint` and `webid_tls_endpoint`
 URIs as appropriate, in the `WWW-Authenticate` header with the `Bearer` method.
 The server **MAY** also include an HTML response body to allow the user to
 perform a first-party login using another method, such as by selecting her
@@ -308,102 +355,89 @@ browser.
 	WWW-Authenticate: Bearer realm="/auth/",
 	    scope="openid webid",
 	    nonce="j16C4SOLQWFor3VYUtZWnrUr5AG5uwDF7q9RFsDk",
-	    token_endpoint="/auth/webid-token",
+	    pop_endpoint="/auth/webid-pop",
 	    webid_tls_endpoint="https://webid-tls.example.com/auth/webid-tls"
 	Access-Control-Allow-Origin: https://other.example.com
 	Access-Control-Expose-Headers: WWW-Authenticate
-	Date: Tue, 30 Apr 2019 20:22:45 GMT
+	Date: Mon,  6 May 2019 01:48:48 GMT
 	Content-type: text/html
 	
 	<html>Human first-party login page...</html>
 
 The agent recognizes the response as compatible with this protocol by recognizing
 the method as `Bearer`, scope `webid`, and the presence of the `nonce` and
-either of the `token_endpoint` or `webid_tls_endpoint` parameters.
+either of the `pop_endpoint` or `webid_tls_endpoint` parameters.
 
-### WebID-OIDC Operation
+### WebID-OIDC Proof of Possession Operation
 
-The agent determines to use the WebID-OIDC method.
+The agent determines to use the WebID-OIDC POP method.
 
-It is assumed that the agent already has a first-person session with the
-user's OP, and can request additional `id_token`s through a normal OIDC
-authorization workflow.
+It is assumed that the agent already possesses a valid `id_token` from the
+user's OP (including a `cnf` confirmation claim), and the private key material
+corresponding to the public key in the `cnf` claim.
 
-The agent generates a cryptographically strong `agent_nonce`. `uri` is
-the absolute URI for the original request, as detailed in Syntax.
+The agent creates a new *proof-token* as described above, setting its `aud`
+claim to the absolute URI of the original request, the `nonce` claim to the
+`nonce` parameter from the `WWW-Authenticate` response header, the `id_token`
+claim to its `id_token` from above, and signing it with the private keying
+material associated with the `cnf` claim of its `id_token`.
 
-The agent calculates
-
-	proof_nonce = Base64URL ( HMAC-SHA512-256 ( k = nonce, m = agent_nonce + ":" + uri ) )
-	
-	("peZAlYnd3ESp-KYkkmsllGfpWLcslTMr3dGymDX2rWc" with the example values used)
-
-The agent requests a new `id_token` from the OP, passing `proof_nonce` in to
-be the `id_token`'s nonce, and requesting at least scopes `openid` and `webid`.
-
-The OP returns to the agent a new, signed `id_token`, whose `nonce` claim is
-the `proof_nonce`. The OP includes the `redirect_uri` in the `aud` claim, if
-supported.
-
-The agent sends a request to the `token_endpoint` URI, and includes the new
-`id_token`, the `nonce` from the `401` response, the `agent_nonce`, the `uri`
-for the original request, and if using the redirect response mode, a
+The agent sends a request to the `pop_endpoint` URI, including the
+*proof-token*, and if using the redirect response mode, a
 `redirect_uri` and a `state`.
 
-	POST /auth/webid-token HTTP/2
+	POST /auth/webid-pop HTTP/2
 	Host: www.example.com
 	Origin: https://other.example.com
 	Content-type: application/x-www-form-urlencoded
 	
-	id_token=ey...
-	&nonce=j16C4SOLQWFor3VYUtZWnrUr5AG5uwDF7q9RFsDk
-	&agent_nonce=1QSoZJq-laL3pukTmOqfDS5hbngkBM5pGF6cmgNp
-	&uri=https://www.example.com/some/restricted/resource
-
-(Line breaks in the request body are for readability and would not be present
-in real life)
+	pop_token=ey...(rest of token omitted)
 
 The server verifies this request:
 
-  1. Verifies the `nonce` (for example, confirming it was really issued by this
-     server, not too far in the past, hasn't been redeemed yet, and was issued
-     for a request for `uri`);
+  1. Parses the `pop_token`, extracting its claims;
 
-  2. Verifies that `uri` is an absolute URI for this server and the protection
-     space for which this endpoint is responsible;
+  2. Parses the `id_token` claim of the `pop_token`, extracting its claims
+     including the WebID it identifies;
 
-  3. Parses `id_token`, extracting the WebID, `iss`uer, `aud`ience, and `nonce` as
-     the `proof_nonce`;
+  3. Verifies the `pop_token`'s time claims (`exp` et al.) and `iss`;
 
-  4. Verifies `proof_nonce`, as extracted from the `id_token`, has the expected
-     value by comparing it to the server's own calculated value (based on the
-     `nonce`, `agent_nonce`, and `uri`);
+  4. Verifies the signature of the `pop_token` with the `cnf` claim of the
+    `id_token`;
 
-  5. Loads and parses the WebID document to extract the OIDC Issuer (if
+  5. Verifies the `pop_token`'s `aud` is an absolute URI for this server and
+     the protection space for which this endpoint is responsible;
+
+  6. Verifies the `pop_token`'s `nonce` (for example, confirming it was really
+     issued by this server, not too far in the past, hasn't been redeemed
+     yet, and was issued for a request for the `aud` claim);
+
+  7. Loads and parses the WebID document to extract the OIDC Issuer (if
      listed) and public keys (if listed) for the WebID;
 
-  6. Verifies the `id_token` signature. If the `id_token` is
+  8. Verifies the `id_token` signature. If the `id_token` is
      [self issued][OIDC-SelfIssued], the public key **MUST** be listed in the
-     WebID.  Otherwise, [OIDC Discovery][], based on the `iss` claim, is used
-     to find the public key, and the `iss` **MUST** be the authorized OIDC
-     issuer.
+     WebID.  Otherwise, [OIDC Discovery][], based on the `id_token`'s `iss`
+     claim, is used to find the public key, and the `iss` **MUST** be the
+     authorized OIDC issuer.
 
-  7. Determines the application identifier, which is the `redirect_uri` of
+  9. Determines the application identifier, which is the `redirect_uri` of
      the request if it was given, or of a likely redirect URI extracted from
-     the `aud` claim (for example, "the audience that looks like a URI"), or
-     the `Origin` header from the original request (if saved with the `nonce`),
-     or the `Origin` header of this request, or Unknown.
+     the `aud` claim of the `id_token` (for example, "the audience that looks
+     like a URI"), or the `Origin` header from the original request (if saved
+     with the `nonce`), or the `Origin` header of this request, or Unknown.
 
 If the request is verified, the server issues an `access_token` valid for
 this protection space and for a limited time. The `access_token` **SHOULD**
 be translatable by a server for this protection space into at least the WebID
-and the application identifier.
+and the application identifier, by whatever means is convenient (for example,
+by lookup in a database table, or by directly encoding in the access token).
 
 	HTTP/2 200
 	Content-type: application/json; charset=utf-8
 	Cache-control: no-cache, no-store
 	Access-Control-Allow-Origin: https://other.example.com
-	Date: Tue, 30 Apr 2019 20:22:46 GMT
+	Date: Mon,  6 May 2019 01:48:50 GMT
 	
 	{
 		"access_token": "gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ",
@@ -538,11 +572,7 @@ have the following properties:
 
   - Record the `Origin` header from the original request.
 
-### Discussion of `proof_nonce` Construction for WebID-OIDC `token_endpoint` Workflow
-
-The construction of the `proof_nonce`, combining a value chosen by the resource
-server (`nonce`), a value chosen by the agent (`agent_nonce`), and the original
-full request URI, serves to thwart Man-In-The-Middle (MITM) attacks.
+### Man-In-The-Middle
 
 Consider a server "Real" with a desirable, but restricted, resource; and a
 server "Rogue" that wants to access the resource on Real. Consider a user
@@ -550,22 +580,7 @@ server "Rogue" that wants to access the resource on Real. Consider a user
 to access Rogue for some reason (clickbait, or perhaps Rogue provides some
 seemingly useful service as well).
 
-Rogue could attempt to access the resource, and be challenged with a `nonce`.
-Rogue could then challenge User for some resource and use the same nonce
-value.  If User merely had her OP sign a new `id_token` with that nonce and
-presented it to Rogue, Rogue could pass that token on to Real, impersonating
-User to access the resource.
-
-The original full request URI, especially including the host name, is
-incorporated into the `proof_nonce` to couple the signed `id_token` to the
-original URI, and to allow Real to verify that the original request URI belongs
-to it and not to a MITM.
-
-The `agent_nonce` is incorporated into the `proof_nonce` to guard against
-Rogue crafting either its own nonce or a URI for User to access that could
-potentially cause the same inputs to the hash function or a hash collision.
-
-### Man-In-The-Middle With WebID-TLS
+#### Man-In-The-Middle With WebID-TLS
 
 Rogue could attempt to access a restricted resource on Real and obtain a
 `nonce` and `webid_tls_endpoint` URI. Rogue could then challenge User's access
@@ -578,26 +593,27 @@ relied only on the `nonce` (or metadata associated with it), User could give
 this token to Rogue which would then be able to use it to access Real.
 
 To ensure Real and User are talking about the same resource, the `webid_tls_endpoint`
-request includes the `uri` just like the `token_endpoint` flow.
+request includes the `uri` in an analogous form to the `pop_endpoint` flow.
 
-### Man-In-The-Middle With HTTP Redirects
+#### Man-In-The-Middle With HTTP Redirects
 
 User **SHOULD** take care to contain disclosure of the `access_token` to the
 protection space for which it was issued.  The HTTP `WWW-Authenticate` `realm`
 parameter doesn't describe the extent of the protection space at the origin
 in a standard way.  Therefore, the extent of the protection space might not
 be known ahead of time, so at the very least, User **MUST NOT** disclose the
-`access_token` beyond the origin of the `uri` parameter used to obtain it.
+`access_token` beyond the origin of the original request URI parameter used
+to obtain it.
 
 Rogue could use an HTTP `3XX` response to redirect User to access a protected
 resource at Real. Depending on the APIs Real's agent uses, the redirect might
 be followed automatically or the `Location` might be exposed to the agent to
 be followed under manual control.
 
-If the redirect is followed automatically, `uri` will be for Rogue, and Real
+If the redirect is followed automatically, the URI will be for Rogue, and Real
 will reject the token request.
 
-If the redirect is followed manually by User, `uri` will be for Real, and
+If the redirect is followed manually by User, the URI will be for Real, and
 User will receive an `access_token`. In this case, User knows the protection
 space is for Real and not Rogue (assuming they have different origins, see
 below). User **MUST** notice that Real's protection space is different than
@@ -613,6 +629,8 @@ origin, [you are having a bad problem][same-origin] and
   [OIDC Discovery]:   https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
   [OIDC-SelfIssued]:  https://openid.net/specs/openid-connect-core-1_0.html#SelfIssued
   [RFC2119]:          https://tools.ietf.org/html/rfc2119
+  [RFC6750]:          https://tools.ietf.org/html/rfc6750
+  [RFC7519]:          https://tools.ietf.org/html/rfc7519
   [RFC7800]:          https://tools.ietf.org/html/rfc7800
   [RFC8174]:          https://tools.ietf.org/html/rfc8174
   [Solid]:            https://github.com/solid
