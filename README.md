@@ -285,6 +285,9 @@ A successful response **SHALL** comprise the following parameters:
   - `state`: A string, the `state` from the request, echoed unmodified. Only
     included in the response if the request included a `state`.
 
+  - `token_type`: A case-insensitive string identifying the kind of token
+    returned in this response. For this protocol the value **MUST** be `Bearer`.
+
 Unrecognized parameters **SHOULD** be ignored.
 
 TBD: error response.
