@@ -180,8 +180,8 @@ header returned in an HTTP `401` response to a request:
   - `nonce`: This parameter conveys an opaque challenge string to be used as
     described below;
 
-  - `pop_endpoint`: The URI of the WebID-OIDC POP Token exchange endpoint, if
-    available;
+  - `webid_pop_endpoint`: The URI of the WebID-OIDC POP Token exchange endpoint,
+    if available;
 
   - `webid_tls_endpoint`: The URI of the WebID-TLS token endpoint, if available.
 
@@ -214,7 +214,7 @@ delays to application response can worsen the user's experience.
 ### Include `cnf` (Confirmation Key) Claim in OIDC `id_token`
 
 The WebID-OIDC portion of this protocol REQUIRES that the `id_token` contain
-a [`cnf`][RFC7800] claim comprising an asymmetric public key as a `jwk`. The
+a [`cnf`][RFC7800] claim comprising an asymmetric public key as a JWK. The
 method by which an agent requests the addition of a `cnf` claim in an `id_token`
 is not yet standardized in OIDC, but will probably be similar to the method
 described in [draft-ietf-oauth-pop-key-distribution][pop-key-dist].
@@ -256,7 +256,7 @@ the `id_token`'s confirmation key, and comprising the following claims:
   - `jti`: Recommended: Use of this claim is **RECOMMENDED** so that the agent
     can salt the token.
 
-### `pop_endpoint` API Parameters
+### `webid_pop_endpoint` API Parameters
 
 In order to avoid leaving sensitive information in web server logs, the agent
 **SHOULD** access this API by HTTP `POST` method, but `GET` **MUST** also be
@@ -335,7 +335,7 @@ A TLS client certificate is **REQUIRED** when communicating with this API
 endpoint. That means the API endpoint will probably be at a different origin
 from the original URI.
 
-A successful response is made in the same manner as one for the `pop_endpoint`.
+A successful response is made in the same manner as one for the `webid_pop_endpoint`.
 
 TBD: error response.
 
@@ -357,7 +357,7 @@ The resource server does not allow this request without authorization.  It
 generates an unguessable, opaque nonce that the server **SHOULD** be able to
 later recognize as having generated. The server responds with an HTTP `401`
 Unauthorized message, and includes the [protection space][] (`realm`), this
-nonce, the appropriate scopes, and the `pop_endpoint` and `webid_tls_endpoint`
+nonce, the appropriate scopes, and the `webid_pop_endpoint` and `webid_tls_endpoint`
 URIs as appropriate, in the `WWW-Authenticate` header with the `Bearer` method.
 The server **MAY** also include an HTML response body to allow the user to
 perform a first-party login using another method, such as by selecting her
@@ -368,7 +368,7 @@ browser.
 	WWW-Authenticate: Bearer realm="/auth/",
 	    scope="openid webid",
 	    nonce="j16C4SOLQWFor3VYUtZWnrUr5AG5uwDF7q9RFsDk",
-	    pop_endpoint="/auth/webid-pop",
+	    webid_pop_endpoint="/auth/webid-pop",
 	    webid_tls_endpoint="https://webid-tls.example.com/auth/webid-tls"
 	Access-Control-Allow-Origin: https://other.example.com
 	Access-Control-Expose-Headers: WWW-Authenticate
@@ -379,7 +379,7 @@ browser.
 
 The agent recognizes the response as compatible with this protocol by recognizing
 the method as `Bearer`, scope `webid`, and the presence of the `nonce` and
-either of the `pop_endpoint` or `webid_tls_endpoint` parameters.
+either of the `webid_pop_endpoint` or `webid_tls_endpoint` parameters.
 
 ### WebID-OIDC Proof of Possession Operation
 
@@ -395,7 +395,7 @@ claim to the absolute URI of the original request, the `nonce` claim to the
 claim to its `id_token` from above, and signing it with the private keying
 material associated with the `cnf` claim of its `id_token`.
 
-The agent sends a request to the `pop_endpoint` URI, including the
+The agent sends a request to the `webid_pop_endpoint` URI, including the
 *proof-token*, and if using the redirect response mode, a
 `redirect_uri` and a `state`.
 
@@ -607,7 +607,7 @@ relied only on the `nonce` (or metadata associated with it), User could give
 this token to Rogue which would then be able to use it to access Real.
 
 To ensure Real and User are talking about the same resource, the `webid_tls_endpoint`
-request includes the `uri` in an analogous form to the `pop_endpoint` flow.
+request includes the `uri` in an analogous form to the `webid_pop_endpoint` flow.
 
 #### Man-In-The-Middle With HTTP Redirects
 
