@@ -42,13 +42,14 @@ in-browser Javascript-based application, and this application will attempt
 to access resources on other servers (the user's or other PODs, other web
 servers, etc) on behalf of the user.
 
-Today, the Solid reference implementation addresses this case by using a
-bespoke *Proof of Possession Token (POPToken)* directly as an HTTP Authorization
+Today, the Solid reference implementation addresses this case by using an
+ad hoc *Proof of Possession Token (POPToken)* directly as an HTTP Authorization
 [Bearer token][RFC6750]. Here, a *POPToken* is a [JWT][RFC7519] containing
 an OIDC `id_token` (which itself is independently validated and which bears
-a [Proof of Possession key][RFC7800]), an `aud`ience binding it to the origin
-of the resource being accessed, and an `iss`uer being the client to which the
-`id_token` was issued.
+a [Proof of Possession key][RFC7800] as the `cnf` claim), an `aud`ience binding
+it to the origin of the resource being accessed, and an `iss`uer being the
+client to which the `id_token` was issued. The *POPToken* is signed with the
+private key associated with the `cnf` claim.
 
 There are a number of issues with this solution:
 
@@ -127,8 +128,14 @@ a client certificate. The user can be directed to follow a link to a page on
 this subdomain host, and if the certificate is presented, verified, and
 properly linked to a WebID, this page can set a browser cookie in the
 superdomain. The user can be redirected back to the original domain, and new
-requests will include the cookie. This scenario shares the first-party
-cookie-based issues described above for WebID-OIDC first-party logins.
+requests will include the cookie. This scenario shares first-party cookie-based
+issues similar to WebID-OIDC first-party logins, which might not be desirable
+for application-based access. These issues include Cross-Site Request Forgery
+attacks, among others, that might grant an attacker or even another legitimate
+application more privilege than is desirable. Additionally, if cookies aren't
+allowed for cross-origin requests by the `Access-Control-Allow-Credentials`
+header, the application might not be able to access a restricted resource
+even after following the above workaround.
 
 The Protocol
 ------------
