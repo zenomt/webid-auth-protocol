@@ -454,7 +454,8 @@ by lookup in a database table, or by directly encoding in the access token).
 	
 	{
 		"access_token": "gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ",
-		"expires_in": 1800
+		"expires_in": 1800,
+		"token_type": "Bearer"
 	}
 
 The agent can now use this `access_token` as a Bearer token in the `Authorization`
@@ -517,7 +518,7 @@ original server's protection space and for a limited time. The `access_token`
 into at least the WebID and the application identifier.
 
 	HTTP/2 302
-	Location: https://other.example.com/app/getbearer#access_token=gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ&expires_in=1800&state=EehJc1e8dDGz2iazKHy-1VJyWgMmnovRsbeEuqfZ
+	Location: https://other.example.com/app/getbearer#access_token=gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ&expires_in=1800&state=EehJc1e8dDGz2iazKHy-1VJyWgMmnovRsbeEuqfZ&token_type=Bearer
 	Date: Mon,  6 May 2019 01:48:50 GMT
 
 The agent can now use this `access_token` as a Bearer token in the `Authorization`
