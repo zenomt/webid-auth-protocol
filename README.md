@@ -264,7 +264,7 @@ supported by the server. The API takes the following parameters, either in
 the request body as Content-Type `application/x-www-form-urlencoded` format
 for `POST`, or as URI query parameters for `GET`:
 
-  - `pop_token`: Required: A modified *proof-token* as described above;
+  - `proof_token`: Required: A modified *proof-token* as described above;
 
   - `redirect_uri`: Optional: If present, the response will be made in the
     form of an HTTP `302` redirect to this URI; otherwise the response will
@@ -404,26 +404,26 @@ The agent sends a request to the `webid_pop_endpoint` URI, including the
 	Origin: https://other.example.com
 	Content-type: application/x-www-form-urlencoded
 	
-	pop_token=ey...(rest of token omitted)
+	proof_token=ey...(rest of token omitted)
 
 The server verifies this request:
 
-  1. Parses the `pop_token`, extracting its claims;
+  1. Parses the `proof_token`, extracting its claims;
 
-  2. Parses the `id_token` claim of the `pop_token`, extracting its claims
+  2. Parses the `id_token` claim of the `proof_token`, extracting its claims
      including the WebID it identifies;
 
-  3. Verifies the `pop_token`'s time claims (`exp` et al.) and `iss`;
+  3. Verifies the `proof_token`'s time claims (`exp` et al.) and `iss`;
 
-  4. Verifies the signature of the `pop_token` with the `cnf` claim of the
+  4. Verifies the signature of the `proof_token` with the `cnf` claim of the
     `id_token`;
 
-  5. Verifies the `pop_token`'s `aud` is an absolute URI for this server and
-     the protection space for which this endpoint is responsible;
+  5. Verifies the `proof_token`'s `aud` is an absolute URI for this server
+     and the protection space for which this endpoint is responsible;
 
-  6. Verifies the `pop_token`'s `nonce` (for example, confirming it was really
-     issued by this server, not too far in the past, hasn't been redeemed
-     yet, and was issued for a request for the `aud` claim);
+  6. Verifies the `proof_token`'s `nonce` (for example, confirming it was
+     really issued by this server, not too far in the past, hasn't been
+     redeemed yet, and was issued for a request for the `aud` claim);
 
   7. Loads and parses the WebID document to extract the OIDC Issuer (if
      listed) and public keys (if listed) for the WebID;
