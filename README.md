@@ -158,10 +158,10 @@ and architectural constraints.
     in the `aud`ience of the `id_token` in certain circumstances, to be used
     as an application identity (with caveats);
 
-  - A token delivery mode with which to establish an application identity
-    (with caveats);
-
   - An API endpoint for obtaining an access token when using WebID-TLS;
+
+  - A token delivery mode with which to establish an application identity
+    when using WebID-TLS (with caveats);
 
   - An operational semantics.
 
@@ -198,26 +198,22 @@ scope from the OP in order to allow third party servers to make access control
 decisions at a finer granularity than Origin.
 
 #### Discussion
-The `redirect_uri` can be used as an application identifier.  Some RPs might
-consider an unrecognized `aud` entry as an untrusted audience and reject the
-`id_token`. Therefore the `redirect_uri` will not be included unless the
-client has signaled a desire for its presence with an appropriate scope.
 
-This protocol includes a redirect workflow that can prove a `redirect_uri`
-directly to the server with the same assurance as from an OIDC `id_token`'s
-`aud` claim.  However, using a redirect-based workflow is inconvenient in a
-browser-based application, and will often involve methods such as invisible
-frames that obfuscate the program's operation (vs direct HTTP transactions),
-and add additional round-trip times and delays to the transaction. Additional
-delays to application response can worsen the user's experience.
+The `redirect_uri` used in OAuth/OIDC flows can be used as an application
+identifier.  Some RPs might consider an unrecognized `aud` entry as an untrusted
+audience and reject the `id_token`. Therefore the `redirect_uri` will not be
+included unless the client has signaled a desire for its presence with an
+appropriate scope.
 
 ### Include `cnf` (Confirmation Key) Claim in OIDC `id_token`
 
-The WebID-OIDC portion of this protocol REQUIRES that the `id_token` contain
-a [`cnf`][RFC7800] claim comprising an asymmetric public key as a JWK. The
-method by which an agent requests the addition of a `cnf` claim in an `id_token`
-is not yet standardized in OIDC, but will probably be similar to the method
-described in [draft-ietf-oauth-pop-key-distribution][pop-key-dist].
+The WebID-OIDC portion of this protocol **REQUIRES** that the `id_token`
+contain a [`cnf`][RFC7800] claim comprising an asymmetric public key as a
+JWK. The method by which an agent requests the addition of a `cnf` claim in
+an `id_token` is not yet standardized in OIDC, but will probably be similar
+to the method described in [draft-ietf-oauth-pop-key-distribution][pop-key-dist].
+The Solid reference implementation uses a different ad-hoc method.
+
 TBD interop constraints (RS256?).
 
 ### Modified Proof of Possession Token
@@ -301,13 +297,10 @@ the `Location` being the `redirect_uri`, followed by a fragment indicator
 Only the fragment form is allowed to avoid the `access_token` accidentally
 appearing in web server logs.
 
-Note: If a `redirect_uri` is included in the request, it overrides any redirect
-URI that may appear in the `aud` of the `id_token` for the purpose of application
-identification and access control decisions.
-
-Note: If a `redirect_uri` is not included in the request and the `id_token`
-has no discernable redirect URI in its `aud` list, then the `Origin` from the
-original request is the best granularity available for access control decisions.
+Note: A `redirect_uri` parameter, if included in the request, is only for
+delivering an access token to the application. It **MUST NOT** be construed
+as an application identifier in the WebID-OIDC mode, even if the `id_token`
+doesn't include a recognizable application identifier.
 
 ### `webid_tls_endpoint` API Parameters
 
@@ -337,6 +330,10 @@ from the original URI.
 
 A successful response is made in the same manner as one for the `webid_pop_endpoint`.
 
+Because the agent accessing this endpoint is in direct control of the WebID-TLS
+private key, the `redirect_uri`, if used, can be used to establish an application
+identifier with the same assurance as in an OAuth workflow.
+
 TBD: error response.
 
 Note: If a `redirect_uri` is not included in the request, then the `Origin`
@@ -359,10 +356,10 @@ later recognize as having generated. The server responds with an HTTP `401`
 Unauthorized message, and includes the [protection space][] (`realm`), this
 nonce, the appropriate scopes, and the `webid_pop_endpoint` and `webid_tls_endpoint`
 URIs as appropriate, in the `WWW-Authenticate` header with the `Bearer` method.
-The server **MAY** also include an HTML response body to allow the user to
-perform a first-party login using another method, such as by selecting her
-OIDC Provider, for cases where the resource was navigated to directly in the
-browser.
+The server **MAY** also include an HTML response body, for example to allow
+the user to perform a first-party login using another method, such as by
+selecting her OIDC Provider, for cases where the resource was navigated to
+directly in the browser.
 
 	HTTP/2 401 Unauthorized
 	WWW-Authenticate: Bearer realm="/auth/",
@@ -396,8 +393,8 @@ claim to its `id_token` from above, and signing it with the private keying
 material associated with the `cnf` claim of its `id_token`.
 
 The agent sends a request to the `webid_pop_endpoint` URI, including the
-*proof-token*, and if using the redirect response mode, a
-`redirect_uri` and a `state`.
+*proof-token*, and if using the redirect response mode, a `redirect_uri` and
+a `state`.
 
 	POST /auth/webid-pop HTTP/2
 	Host: www.example.com
@@ -434,17 +431,15 @@ The server verifies this request:
      claim, is used to find the public key, and the `iss` **MUST** be the
      authorized OIDC issuer.
 
-  9. Determines the application identifier, which is the `redirect_uri` of
-     the request if it was given, or of a likely redirect URI extracted from
-     the `aud` claim of the `id_token` (for example, "the audience that looks
-     like a URI"), or the `Origin` header from the original request (if saved
-     with the `nonce`), or the `Origin` header of this request, or Unknown.
+  9. Determines the application identifier, which is the (likely) redirect URI
+     extracted from the `aud` claim of the `id_token` (for example, "the
+     audience that looks like a URI"), or Unknown.
 
 If the request is verified, the server issues an `access_token` valid for
 this protection space and for a limited time. The `access_token` **SHOULD**
 be translatable by a server for this protection space into at least the WebID
 and the application identifier, by whatever means is convenient (for example,
-by lookup in a database table, or by directly encoding in the access token).
+by lookup in a database, or by direct encoding in the access token).
 
 	HTTP/2 200
 	Content-type: application/json; charset=utf-8
@@ -489,7 +484,7 @@ server's protection space.
 	
 	nonce=j16C4SOLQWFor3VYUtZWnrUr5AG5uwDF7q9RFsDk
 	&uri=https://www.example.com/some/restricted/resource
-	&redirect_uri=https://other.example.com/app/getbearer
+	&redirect_uri=https://other.example.com/app/getbearer.html
 	&state=EehJc1e8dDGz2iazKHy-1VJyWgMmnovRsbeEuqfZ
 
 The server verifies the request:
@@ -518,7 +513,7 @@ original server's protection space and for a limited time. The `access_token`
 into at least the WebID and the application identifier.
 
 	HTTP/2 302
-	Location: https://other.example.com/app/getbearer#access_token=gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ&expires_in=1800&state=EehJc1e8dDGz2iazKHy-1VJyWgMmnovRsbeEuqfZ&token_type=Bearer
+	Location: https://other.example.com/app/getbearer.html#access_token=gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ&expires_in=1800&state=EehJc1e8dDGz2iazKHy-1VJyWgMmnovRsbeEuqfZ&token_type=Bearer
 	Date: Mon,  6 May 2019 01:48:50 GMT
 
 The agent can now use this `access_token` as a Bearer token in the `Authorization`
@@ -540,13 +535,14 @@ to determine access rights.
 ### Redirect Workflow Considerations
 
 Care **SHOULD** be taken so that the `Location` header in response to the
-above API endpoints is not exposed to browser scripts in redirect-type
+`webid_tls_endpoint` is not exposed to browser scripts in redirect-type
 responses. The redirect-type response flow in a browser application is intended
 to only allow a browser application to obtain the returned parameters if the
 redirect was actually followed, indicating the `redirect_uri` is part of the
 application. If the `Location` header can be read directly by the browser
-script from an `XMLHTTPRequest` or `Fetch` response, any browser application can
-impersonate any other browser application to the above API endpoints.
+script from an `XMLHTTPRequest` or `Fetch` response without the redirect being
+followed, any browser application can impersonate any other browser application
+to the `webid_tls_endpoint`.
 
 The `redirect_uri` (either as part of this API flow or extracted from an
 `id_token`) is not truly secure, but is only a strong indicator that the
@@ -556,16 +552,16 @@ subject to the [Same-Origin policy][same-origin] or
 [Cross-Origin Resource Sharing (CORS)][CORS] restrictions, and have full
 access to all request and response headers of all HTTP transactions (including
 ones to OIDC Providers), and therefore can impersonate any `redirect_uri`
-(and therefore any application identifier) whether it is associated with the
-application or not.
+(and therefore any application identifier) or origin, whether associated with
+the application or not.
 
 The presence and use of a `redirect_uri` with the above APIs (either directly
-or in an `id_token`) indicates only that the authenticated WebID asserts that
-the URI identifies an application she has consented to use. It does not
-guarantee that any particular URI was actually followed. The WebID making
-this assertion is the only party that should assign a trustability to any
-`redirect_uri`.  This distinction **SHOULD** be considered when making access
-control decisions.
+in the WebID-TLS mode or extracted from an `id_token` in the WebID-OIDC mode)
+indicates only that the authenticated WebID asserts that the URI identifies
+an application she has consented to use. It does not guarantee that any
+particular URI was actually followed. The WebID making this assertion is the
+only party that should assign a trustability to any such URI.  This distinction
+**SHOULD** be considered when making access control decisions.
 
 ### Nonce Considerations
 
@@ -586,7 +582,7 @@ have the following properties:
 
   - Record the `Origin` header from the original request.
 
-### Man-In-The-Middle
+### Man-In-The-Middle Considerations
 
 Consider a server "Real" with a desirable, but restricted, resource; and a
 server "Rogue" that wants to access the resource on Real. Consider a user
@@ -637,6 +633,47 @@ If Real and Rogue have the same origin, Rogue can obtain an `access_token`
 for Real as User, as detailed above. However, if Real and Rogue have the same
 origin, [you are having a bad problem][same-origin] and
 [you will not go to space today][up goer five].
+
+### Application Impersonation With WebID-OIDC and Proof Tokens
+
+If User consents to use a Rogue application comprising a rogue user interface
+and a rogue server component, Rogue can obtain a signed `id_token` that
+includes a `cnf` claim to which Rogue has control of the private keying
+material.  The private keying material for the `cnf` could already be on the
+server or could be transferred to the server by the user interface.
+
+The server is then free to create *proof-tokens* for any resource, and set
+any request headers (including `Origin`) and inspect any response bodies or
+headers (including `Location`), and the server is under no obligation to
+follow any redirect or interpret any pages or scripts at the destination.
+
+Therefore, the `redirect_uri` parameter and the `Origin` (or any other) request
+header **MUST NOT** be used as an application identifier in the `webid_pop_endpoint`,
+since they can be forged by Rogue with no additional input or consent by User.
+Since User trusts her OpenID Provider, a `redirect_uri` extracted from the
+signed `id_token`'s `aud` is the only reliable application identifier, and
+then only according to User's assertion.
+
+### Unknown/Unidentified Application Considerations
+
+When accessing resources as part of a first-party login session (authorized,
+for example, with a cookie), the lack of an `Origin` header (or the `Origin`
+denoting the resource server's own origin) is typically construed to mean
+that the user is accessing the resources directly with the native, first-party
+application.
+
+The nature of a Bearer token is that any agent presenting it is presumed to
+be the entity to which it was issued. A Rogue application can send an
+`access_token` to a server, which is not contrained on any HTTP headers it
+can set or omit (including `Origin`).
+
+Therefore, an application presenting a Bearer `access_token` that resolves
+to an unknown or unidentified application **MUST** be considered to be distinct
+from the "no/same `Origin` in a first-party session" application assumption
+case. A resource server **SHOULD** ignore the `Origin` header, for purposes
+of access control or application identification, when a Bearer `access_token`
+is presented for authorization, since the agent bearing the token could have
+set that header to any value.
 
 
   [CORS]:             https://www.w3.org/TR/cors/
