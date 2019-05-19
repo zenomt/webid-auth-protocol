@@ -337,8 +337,8 @@ identifier with the same assurance as in an OAuth workflow.
 TBD: error response.
 
 Note: If a `redirect_uri` is not included in the request, then the `Origin`
-from the original request is the best granularity available for access control
-decisions.
+from the request to the `webid_tls_endpoint` is the best granularity available
+for access control decisions.
 
 Operation
 ---------
@@ -503,9 +503,8 @@ The server verifies the request:
      and looking for a matching public key in the WebID;
 
   4. Determines the application identifier, which is the `redirect_uri` of
-     the request if it was given, or the `Origin` header from the original
-     request (if recorded with the `nonce`), or the `Origin` header of this
-     request if it is not the origin of the original request URI, or Unknown.
+     the request if it was given, or the `Origin` header of this request if
+     present, or Unknown.
 
 If the request is verified, the server issues an `access_token` valid for the
 original server's protection space and for a limited time. The `access_token`
@@ -579,8 +578,6 @@ have the following properties:
   - Be redeemable at most once;
 
   - Be coupled to the original request URI in a recognizable way;
-
-  - Record the `Origin` header from the original request.
 
 ### Man-In-The-Middle Considerations
 
