@@ -337,8 +337,8 @@ identifier with the same assurance as in an OAuth workflow.
 TBD: error response.
 
 Note: If a `redirect_uri` is not included in the request, then the `Origin`
-from the request to the `webid_tls_endpoint` is the best granularity available
-for access control decisions.
+header from the request to the `webid_tls_endpoint` provides the most granular
+application identifier available for access control decisions.
 
 Operation
 ---------
@@ -661,8 +661,8 @@ application.
 
 The nature of a Bearer token is that any agent presenting it is presumed to
 be the entity to which it was issued. A Rogue application can send an
-`access_token` to a server, which is not contrained on any HTTP headers it
-can set or omit (including `Origin`).
+`access_token` to a server, which is not constrained on any HTTP headers it
+can send or omit (including `Origin`).
 
 Therefore, an application presenting a Bearer `access_token` that resolves
 to an unknown or unidentified application **MUST** be considered to be distinct
