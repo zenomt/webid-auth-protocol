@@ -185,6 +185,19 @@ header returned in an HTTP `401` response to a request:
 
   - `webid_tls_endpoint`: The URI of the WebID-TLS token endpoint, if available.
 
+  - `error`: If present, the request had a problem other than not presenting
+    an access credential. The following reason code is defined:
+    * `invalid_token`: A `Bearer` token was presented, but it was expired,
+      revoked, or otherwise not recognized as valid.
+
+If a request is made for a resource within a protection space and that request
+includes an `Authorization` header with an invalid `Bearer` token, the resource
+server **SHOULD** reply with an HTTP `401` response and `WWW-Authenticate`
+header as above, even if the request otherwise doesn't require `Authorization`.
+This is to allow an agent to obtain a fresh access token proactively (for
+example, before the current token expires, to avoid delaying a real request
+by the user).
+
 ### Include `redirect_uri` in OIDC `id_token`
 
 In order to enable reasonable discrimination of applications at a finer
@@ -428,7 +441,7 @@ The server verifies this request:
   8. Verifies the `id_token` signature. If the `id_token` is
      [self issued][OIDC-SelfIssued], the public key **MUST** be listed in the
      WebID.  Otherwise, [OIDC Discovery][], based on the `id_token`'s `iss`
-     claim, is used to find the public key, and the `iss` **MUST** be the
+     claim, is used to find the public key. The `iss` **MUST** be an
      authorized OIDC issuer.
 
   9. Determines the application identifier, which is the (likely) redirect URI
@@ -464,6 +477,42 @@ header for requests in the same protection space.
 The server translates the bearer token into a WebID, and application identifier
 if available, and can use those data and any others at its disposal to make
 a determination whether to grant access to the requested resource.
+
+	Client           WebID              OpenID                           Resource
+	App            Document            Provider      webid_pop_endpoint    Server
+	|                  |                  |                  |                  |
+	|-- request URI ----------------------------------------------------------->|
+	|<--------------------------------- 401 Unauthorized Bearer nonce, scope, --|
+	|                  |                  |              webid_pop_endpoint     |
+	|make proof-token  |                  |                  |                  |
+	|-- send proof-token ----------------------------------->|extract id_token. |
+	|                  |                  |                  |verify PT exp,iat,|
+	|                  |                  |                  |iss,aud,nonce,sig.|
+	|                  |                  |                  |verify id_token   |
+	|                  |                  |                  |exp,iat.          |
+	|                  |                  |                  |                  |
+	|                  |<---------------------- get WebID ---|                  |
+	|                  |------------------------ document -->|                  |
+	|                  |                  |                  |verify id_token   |
+	|                  |                  |                  |iss is authorized.|
+	|                  |                  |                  |                  |
+	|                  |                  |<---- get OIDC ---?(if not           |
+	|                  |                  |------ config --->? self-issued)     |
+	|                  |                  |                  ?                  |
+	|                  |                  |<------ get ------?                  |
+	|                  |                  |------ jwks ----->?                  |
+	|                  |                  |                  |verify id_token sig.
+	|                  |                  |                  |determine app-id. |
+	|                  |                  |                  |make access_token.|
+	|<--------------------------- answer access_token, exp --|                  |
+	|                  |                  |                  |                  |
+	|-- request URI with access_token ----------------------------------------->|
+	|                  |                  |                 verify access_token.|
+	|                  |                  |               apply access controls.|
+	|                  |                  |                  |                  |
+	|<------------------------------------------------------- answer resource --|
+	
+	    Figure 1: Accessing a Restricted Resource With WebID-OIDC POP Method
 
 ### WebID-TLS Operation
 
