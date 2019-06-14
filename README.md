@@ -416,7 +416,7 @@ a `state`.
 	
 	proof_token=ey...(rest of token omitted)
 
-The server verifies this request:
+The endpoint verifies this request:
 
   1. Parses the `proof_token`, extracting its claims;
 
@@ -428,11 +428,11 @@ The server verifies this request:
   4. Verifies the signature of the `proof_token` with the `cnf` claim of the
     `id_token`;
 
-  5. Verifies the `proof_token`'s `aud` is an absolute URI for this server
-     and the protection space for which this endpoint is responsible;
+  5. Verifies the `proof_token`'s `aud` is an absolute URI for a resource in
+     the protection space for which this endpoint is responsible;
 
   6. Verifies the `proof_token`'s `nonce` (for example, confirming it was
-     really issued by this server, not too far in the past, hasn't been
+     really issued by this system, not too far in the past, hasn't been
      redeemed yet, and was issued for a request for the `aud` claim);
 
   7. Loads and parses the WebID document to extract the OIDC Issuer (if
@@ -448,7 +448,7 @@ The server verifies this request:
      extracted from the `aud` claim of the `id_token` (for example, "the
      audience that looks like a URI"), or Unknown.
 
-If the request is verified, the server issues an `access_token` valid for
+If the request is verified, the endpoint issues an `access_token` valid for
 this protection space and for a limited time. The `access_token` **SHOULD**
 be translatable by a server for this protection space into at least the WebID
 and the application identifier, by whatever means is convenient (for example,
@@ -466,7 +466,7 @@ by lookup in a database, or by direct encoding in the access token).
 		"token_type": "Bearer"
 	}
 
-The agent can now use this `access_token` as a Bearer token in the `Authorization`
+The agent can now use this `access_token` as a bearer token in the `Authorization`
 header for requests in the same protection space.
 
 	GET /some/restricted/resource HTTP/2
@@ -564,7 +564,7 @@ into at least the WebID and the application identifier.
 	Location: https://other.example.com/app/getbearer.html#access_token=gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ&expires_in=1800&state=EehJc1e8dDGz2iazKHy-1VJyWgMmnovRsbeEuqfZ&token_type=Bearer
 	Date: Mon,  6 May 2019 01:48:50 GMT
 
-The agent can now use this `access_token` as a Bearer token in the `Authorization`
+The agent can now use this `access_token` as a bearer token in the `Authorization`
 header for requests in the same protection space at the original request URI's
 origin.
 
@@ -708,16 +708,16 @@ denoting the resource server's own origin) is typically construed to mean
 that the user is accessing the resources directly with the native, first-party
 application.
 
-The nature of a Bearer token is that any agent presenting it is presumed to
+The nature of a bearer token is that any agent presenting it is presumed to
 be the entity to which it was issued. A Rogue application can send an
 `access_token` to a server, which is not constrained on any HTTP headers it
 can send or omit (including `Origin`).
 
-Therefore, an application presenting a Bearer `access_token` that resolves
+Therefore, an application presenting a bearer `access_token` that resolves
 to an unknown or unidentified application **MUST** be considered to be distinct
 from the "no/same `Origin` in a first-party session" application assumption
 case. A resource server **SHOULD** ignore the `Origin` header, for purposes
-of access control or application identification, when a Bearer `access_token`
+of access control or application identification, when a bearer `access_token`
 is presented for authorization, since the agent bearing the token could have
 set that header to any value.
 
