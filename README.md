@@ -474,9 +474,9 @@ header for requests in the same protection space.
 	Origin: https://other.example.com
 	Authorization: Bearer gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ
 
-The server translates the bearer token into a WebID, and application identifier
-if available, and can use those data and any others at its disposal to make
-a determination whether to grant access to the requested resource.
+The server verifies and translates the bearer token into a WebID, and application
+identifier if available, and can use those data and any others at its disposal
+to make a determination whether to grant access to the requested resource.
 
 	Client           WebID              OpenID                           Resource
 	App            Document            Provider      webid_pop_endpoint    Server
@@ -485,7 +485,8 @@ a determination whether to grant access to the requested resource.
 	|<--------------------------------- 401 Unauthorized Bearer nonce, scope, --|
 	|                  |                  |              webid_pop_endpoint     |
 	|make proof-token  |                  |                  |                  |
-	|-- send proof-token ----------------------------------->|extract id_token. |
+	|-- send proof-token ----------------------------------->|                  |
+	|                  |                  |                  |extract id_token. |
 	|                  |                  |                  |verify PT exp,iat,|
 	|                  |                  |                  |iss,aud,nonce,sig.|
 	|                  |                  |                  |verify id_token   |
@@ -496,11 +497,11 @@ a determination whether to grant access to the requested resource.
 	|                  |                  |                  |verify id_token   |
 	|                  |                  |                  |iss is authorized.|
 	|                  |                  |                  |                  |
-	|                  |                  |<---- get OIDC ---?(if not           |
-	|                  |                  |------ config --->? self-issued)     |
-	|                  |                  |                  ?                  |
-	|                  |                  |<------ get ------?                  |
+	|                  |                  |<---- get OIDC ---?                  |
+	|                  |                  |------ config --->? (if id_token not |
+	|                  |                  |<------ get ------?  self-issued)    |
 	|                  |                  |------ jwks ----->?                  |
+	|                  |                  |                  |                  |
 	|                  |                  |                  |verify id_token sig.
 	|                  |                  |                  |determine app-id. |
 	|                  |                  |                  |make access_token.|
