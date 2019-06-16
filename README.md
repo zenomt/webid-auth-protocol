@@ -501,14 +501,14 @@ to make a determination whether to grant access to the requested resource.
 	|                  |                  |------ config --->? (if id_token not |
 	|                  |                  |<------ get ------?  self-issued)    |
 	|                  |                  |------ jwks ----->?                  |
-	|                  |                  |                  |                  |
 	|                  |                  |                  |verify id_token sig.
 	|                  |                  |                  |determine app-id. |
+	|                  |                  |                  |                  |
 	|                  |                  |                  |make access_token.|
 	|<--------------------------- answer access_token, exp --|                  |
 	|                  |                  |                  |                  |
 	|-- request URI with access_token ----------------------------------------->|
-	|                  |                  |                 verify access_token.|
+	|                  |                  |     verify & translate access_token.|
 	|                  |                  |               apply access controls.|
 	|                  |                  |                  |                  |
 	|<------------------------------------------------------- answer resource --|
