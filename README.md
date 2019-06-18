@@ -200,15 +200,15 @@ by the user).
 
 ### Include `redirect_uri` in OIDC `id_token`
 
-In order to enable reasonable discrimination of applications at a finer
-granularity than Origin, a WebID-OIDC OP **SHOULD** include in the list of
-`aud`iences the `redirect_uri` to which the `id_token` or `code` was sent,
-if and only if the `webid` scope (or other scopes whose semantics define this
-behavior) was requested by the client.
+In order to identify an application when the `Origin` header is not trustable
+(specifically, when presenting a bearer token), a WebID-OIDC OP **SHOULD**
+include in the list of `aud`iences the `redirect_uri` to which the `id_token`
+or `code` was sent, if and only if the `webid` scope (or other scopes whose
+semantics define this behavior) was requested by the client.
 
 A client conforming to this protocol **SHOULD** request the `webid` additional
 scope from the OP in order to allow third party servers to make access control
-decisions at a finer granularity than Origin.
+decisions based on the application identifier.
 
 #### Discussion
 
@@ -251,10 +251,10 @@ the `id_token`'s confirmation key, and comprising the following claims:
     as described above, and otherwise valid to identify the user requesting
     access;
 
-  - `iss`: Required: The issuer of this *proof-token*, which **MUST** be the
-    authorized party to which the `id_token` was issued. That is, `iss`
-    **MUST** be identical to the `id_token`'s `azp` claim if present, otherwise
-    `iss` **MUST** be present in the `id_token`'s `aud` claim.
+  - `iss`: Required: The issuer of this *proof-token*, which **MUST** be
+    present in the `id_token`'s `aud` claim; the value of this claim is used
+    as the application identifier, and therefore **SHOULD** be the `redirect_uri`
+    to which the `id_token` or `code` was sent (see above);
 
   - `iat`: Required: This claim **MUST NOT** be before the `iat` claim
     or the `nbf` claim of the `id_token`;
@@ -423,7 +423,8 @@ The endpoint verifies this request:
   2. Parses the `id_token` claim of the `proof_token`, extracting its claims
      including the WebID it identifies;
 
-  3. Verifies the `proof_token`'s time claims (`exp` et al.) and `iss`;
+  3. Verifies the `proof_token`'s time claims (`exp` et al.) and `iss`
+     (the `iss` **MUST** be present in the `id_token`'s `aud` claim);
 
   4. Verifies the signature of the `proof_token` with the `cnf` claim of the
     `id_token`;
@@ -444,9 +445,9 @@ The endpoint verifies this request:
      claim, is used to find the public key. The `iss` **MUST** be an
      authorized OIDC issuer.
 
-  9. Determines the application identifier, which is the (likely) redirect URI
-     extracted from the `aud` claim of the `id_token` (for example, "the
-     audience that looks like a URI"), or Unknown.
+  9. Determines the application identifier, which is the `iss` of the
+     `proof_token`. The `iss` of the `proof_token` **MUST** be present
+     in the `aud` claim of the `id_token`.
 
 If the request is verified, the endpoint issues an `access_token` valid for
 this protection space and for a limited time. The `access_token` **SHOULD**
@@ -474,9 +475,9 @@ header for requests in the same protection space.
 	Origin: https://other.example.com
 	Authorization: Bearer gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ
 
-The server verifies and translates the bearer token into a WebID, and application
-identifier if available, and can use those data and any others at its disposal
-to make a determination whether to grant access to the requested resource.
+The server verifies and translates the bearer token into a WebID and application
+identifier, and can use those data and any others at its disposal to make a
+determination whether to grant access to the requested resource.
 
 	Client           WebID              OpenID                           Resource
 	App            Document            Provider      webid_pop_endpoint    Server
