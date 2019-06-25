@@ -92,8 +92,10 @@ There are a number of issues with this solution:
 
 At this time, browser-based applications can only be identified to resource
 servers via the `Origin` HTTP header (except in the special case where the
-OP and the resource server are coupled).  This may be insufficient when
-multiple applications are hosted in the same origin (for example, github.com).
+OP and the resource server are coupled).  When using bearer tokens, a non-browser
+component of a rogue application can forge an arbitrary `Origin` header;
+therefore, using the `Origin` header for application identity is not acceptable
+in this circumstance.
 
 
 ### WebID-TLS
