@@ -266,7 +266,7 @@ the `id_token`'s confirmation key, and comprising the following claims:
     present;
 
   - `app_authorizations`: **OPTIONAL** (for WebID-OIDC): If present, this is
-    one (string) or more (array of strings) [App Authorization][app-auth] URIs;
+    one (string) or more (array of strings) [App Authorizations][app-auth] URIs;
 
   - `exp`: **OPTIONAL**: If present, this claim **MUST NOT** be after the
     expiration time of the `token`, if it has one, and **MUST NOT** be before
@@ -343,7 +343,7 @@ parameters for `GET`:
     identifier;
 
   - `app_authorizations`: **OPTIONAL** (for WebID-TLS): Zero or more
-    [App Authorization][app-auth] URIs (may occur more than once);
+    [App Authorizations][app-auth] URIs (may occur more than once);
 
   - `redirect_uri`: **OPTIONAL**: If present, the response will be made in the
     form of an HTTP `302` redirect to this URI; otherwise the response will
@@ -515,31 +515,31 @@ resource.
 	|                  |                  |                  |extract token.    |
 	|                  |                  |                  |verify PT iss,aud,|
 	|                  |                  |                  |nonce,sig. verify |
-	|                  |                  |                  |id_token exp,iat. |
+	|                  |                  |                  |id token exp,iat. |
 	|                  |                  |                  |                  |
 	|                  |<---------------------- get WebID ---|                  |
 	|                  |------------------------ document -->|                  |
 	|                  |                  |                  |verify token iss  |
-	|                  |                  |                  |is authorized.    |
-	|                  |                  |                  |                  |
-	|                  |                  |<---- get OIDC ---?                  |
-	|                  |                  |------ config --->? (if token not    |
-	|                  |                  |<------ get ------?  self-issued)    |
-	|                  |                  |------ jwks ----->?                  |
-	|                  |                  |                  |verify token sig. |
-	|                  |                  |                  |determine app-id. |
-	|                  | App Auths Docs   |                  |                  |
-	|                  |  |<---------------- get app auths --|                  |
-	|                  |  |----------------- document(s) --->|                  |
-	|                  |  |               |                  |determine app auths
-	|                  |                  |                  |                  |
-	|                  |                  |                  |make access_token.|
+	|                                     |                  |is authorized.    |
+	|                                     |                  |                  |
+	|                                     |<---- get OIDC ---?                  |
+	|                                     |------ config --->? (if token not    |
+	|                                     |<------ get ------?  self-issued)    |
+	|                                     |------ jwks ----->?                  |
+	|                                     |                  |verify token sig. |
+	|              App Auths                                 |determine app-id. |
+	|              Document(s)                               |                  |
+	|                  |<------------------- get app auths --|                  |
+	|                  |-------------------- document(s) --->|                  |
+	|                  |                                     |determine app auths
+	|                                                        |                  |
+	|                                                        |make access_token.|
 	|<--------------------------- answer access_token, exp --|                  |
-	|                  |                  |                  |                  |
+	|                                                        |                  |
 	|-- request URI with access_token ----------------------------------------->|
-	|                  |                  |     verify & translate access_token.|
-	|                  |                  |               apply access controls.|
-	|                  |                  |                  |                  |
+	|                                         validate & translate access_token.|
+	|                                                     apply access controls.|
+	|                                                                           |
 	|<------------------------------------------------------- answer resource --|
 	
 	    Figure 1: Accessing a Restricted Resource With WebID-OIDC POP Method
