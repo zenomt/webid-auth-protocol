@@ -4,11 +4,10 @@ WebID HTTP Authorization Protocol
 Introduction
 ------------
 This memo proposes a protocol to obtain HTTP bearer-type authorization tokens
-that can establish that the agent requesting a resource is acting directly
-on behalf of, and is authorized by, a [WebID][] URI (WebID). The protocol
-includes methods for both [WebID-OIDC][] and [WebID-TLS][] authenticated
-identities, including a means to authenticate WebID-OIDC identities using
-[Self-Issued OpenID Providers][OIDC-SelfIssued].
+that can establish that the agent requesting a resource is acting on behalf
+of a [WebID][] URI (WebID). The protocol includes methods for both [WebID-OIDC][]
+and [WebID-TLS][] authenticated identities, including a means to authenticate
+WebID-OIDC identities using [Self-Issued OpenID Providers][OIDC-SelfIssued].
 
 This protocol is intended to be used by [Solid][] applications, in particular
 browser-based applications, but is generally applicable to any HTTP access
@@ -149,7 +148,7 @@ and architectural constraints.
 
 *WebID HTTP Authorization Protocol* comprises the following components:
 
-  - Three new parameters to the `WWW-Authenticate` response header for
+  - New parameters to the `WWW-Authenticate` response header for
     the `Bearer` method, and supplemental semantics;
 
   - An API endpoint for exchanging a proof of possession for an access token;
@@ -182,15 +181,18 @@ header returned in an HTTP `401` response to a request:
   - `nonce`: This parameter conveys an opaque challenge string to be used as
     described below;
 
-  - `webid_pop_endpoint`: The URI of the WebID-OIDC POP Token exchange endpoint,
+  - `token_pop_endpoint`: The URI of the WebID-OIDC POP Token exchange endpoint,
     if available;
 
-  - `webid_tls_endpoint`: The URI of the WebID-TLS token endpoint, if available.
+  - `client_cert_endpoint`: The URI of the WebID-TLS token endpoint, if available.
 
   - `error`: If present, the request had a problem other than not presenting
-    an access credential. The following reason code is defined:
+    an access credential. The following reason codes are defined:
     * `invalid_token`: A `Bearer` token was presented, but it was expired,
       revoked, or otherwise not recognized as valid.
+    * `proof_required`: A `Bearer` token requiring proof-of-possession
+      of a secret key (but otherwise valid) was presented. It should be
+      exchanged for a new token according to this protocol.
 
 If a request is made for a resource within a protection space and that request
 includes an `Authorization` header with an invalid `Bearer` token, the resource
@@ -214,7 +216,7 @@ decisions based on the application identifier.
 
 #### Discussion
 
-The `redirect_uri` used in OAuth/OIDC flows can be used as an application
+The `redirect_uri` used in OAuth2/OIDC flows can be used as an application
 identifier.  Some RPs might consider an unrecognized `aud` entry as an untrusted
 audience and reject the `id_token`. Therefore the `redirect_uri` will not be
 included unless the client has signaled a desire for its presence with an
@@ -231,43 +233,49 @@ The Solid reference implementation uses a different ad-hoc method.
 
 TBD interop constraints (RS256?).
 
-### Modified Proof of Possession Token
+### Proof of Possession Token
 
-This section completely specifies a Proof of Possession Token format for use
-in this protocol. This format is a modest modification of the bespoke *POPTokens*
+This section specifies a Proof of Possession Token format for use in this
+protocol. This format is a modest modification of the bespoke *POPTokens*
 currently in use in the Solid reference implementation, as determined from
 source code inspection.
 
 The Proof of Possession Token (*proof-token*) is a [JWT][RFC7519], signed by
 the `id_token`'s confirmation key, and comprising the following claims:
 
+  - `token`: Required: A WebID-OIDC `id_token` containing a `cnf` claim
+    as described above, and otherwise valid to identify the user requesting
+    access;
+
   - `aud`: Required: The [absolute URI][], including scheme, authority
     (host and optional port), path, and query, but not including fragment
     identifier, corresponding to the original request that resulted in the
-    HTTP `401` response. This claim **MUST NOT** include a fragment identifier.
-    If this claim is an array, it **MUST** have exactly one element;
+    HTTP `401` response; this claim **MUST NOT** include a fragment identifier;
+    if this claim is an array, it **MUST** have exactly one element;
 
   - `nonce`: Required: The nonce from the `WWW-Authenticate` challenge;
-
-  - `id_token`: Required: A WebID-OIDC `id_token` containing a `cnf` claim
-    as described above, and otherwise valid to identify the user requesting
-    access;
 
   - `iss`: Required: The issuer of this *proof-token*, which **MUST** be
     present in the `id_token`'s `aud` claim; the value of this claim is used
     as the application identifier, and therefore **SHOULD** be the `redirect_uri`
     to which the `id_token` or `code` was sent (see above);
 
-  - `iat`: Required: This claim **MUST NOT** be before the `iat` claim
-    or the `nbf` claim of the `id_token`;
-
-  - `exp`: Required: This claim **MUST NOT** be after the `exp` claim of
-    the `id_token`;
-
   - `jti`: Recommended: Use of this claim is **RECOMMENDED** so that the agent
-    can salt the token.
+    can salt the token's signature; the verifier can ignore this claim, if
+    present;
 
-### `webid_pop_endpoint` API Parameters
+  - `app_authorizations`: **OPTIONAL**: If present, this is one (string) or
+    more (array of strings) [App Authorization][app-auth] URIs;
+
+  - `exp`: **OPTIONAL**: If present, this claim **MUST NOT** be after the
+    expiration time of the `token`, if it has one, and **MUST NOT** be before
+    the current time on the verifier; ordinarily the validity of the `nonce`
+    is sufficient to establish not-before and not-after constraints on the
+    proof, so this claim isn't usually necessary.
+
+Unrecognized claims **SHOULD** be ignored.
+
+### `token_pop_endpoint` API Parameters
 
 In order to avoid leaving sensitive information in web server logs, the agent
 **SHOULD** access this API by HTTP `POST` method, but `GET` **MUST** also be
@@ -275,7 +283,7 @@ supported by the server. The API takes the following parameters, either in
 the request body as Content-Type `application/x-www-form-urlencoded` format
 for `POST`, or as URI query parameters for `GET`:
 
-  - `proof_token`: Required: A modified *proof-token* as described above;
+  - `proof_token`: Required: A *proof-token* as described above;
 
   - `redirect_uri`: Optional: If present, the response will be made in the
     form of an HTTP `302` redirect to this URI; otherwise the response will
@@ -284,7 +292,7 @@ for `POST`, or as URI query parameters for `GET`:
   - `state`: Optional: If present, opaque application state to be echoed
     back in a redirect response. Only useful if a `redirect_uri` is specified.
 
-A successful response **SHALL** comprise the following parameters:
+A successful response comprises the following parameters:
 
   - `access_token`: An opaque string comprising a `Bearer` access token that
     can be used for requests in the same [protection space][] as the original
@@ -317,9 +325,9 @@ delivering an access token to the application. It **MUST NOT** be construed
 as an application identifier in the WebID-OIDC mode, even if the `id_token`
 doesn't include a recognizable application identifier.
 
-### `webid_tls_endpoint` API Parameters
+### `client_cert_endpoint` API Parameters
 
-The `webid_tls_endpoint` API **MUST** support HTTP `POST` and `GET` methods.
+The `client_cert_endpoint` API **MUST** support HTTP `POST` and `GET` methods.
 The API takes the following parameters, either in the request body as Content-Type
 `application/x-www-form-urlencoded` format for `POST`, or as URI query
 parameters for `GET`:
@@ -332,6 +340,9 @@ parameters for `GET`:
     HTTP `401` response. This parameter **MUST NOT** include a fragment
     identifier;
 
+  - `app_authorizations`: **OPTIONAL**: Zero or more
+    [App Authorization][app-auth] URIs (may occur more than once);
+
   - `redirect_uri`: Optional: If present, the response will be made in the
     form of an HTTP `302` redirect to this URI; otherwise the response will
     be made in the response body as a JSON object.
@@ -343,16 +354,17 @@ A TLS client certificate is **REQUIRED** when communicating with this API
 endpoint. That means the API endpoint will probably be at a different origin
 from the original URI.
 
-A successful response is made in the same manner as one for the `webid_pop_endpoint`.
+A successful response is made in the same manner as one for the `token_pop_endpoint`.
 
-Because the agent accessing this endpoint is in direct control of the WebID-TLS
-private key, the `redirect_uri`, if used, can be used to establish an application
-identifier with the same assurance as in an OAuth workflow.
+Because the agent accessing this endpoint is in direct control of the TLS
+client certificate's private key, the `redirect_uri`, if used, can be used
+to establish an application identifier with the same assurance as in an OAuth2
+workflow.
 
 TBD: error response.
 
 Note: If a `redirect_uri` is not included in the request, then the `Origin`
-header from the request to the `webid_tls_endpoint` provides the most granular
+header from the request to the `client_cert_endpoint` provides the most granular
 application identifier available for access control decisions.
 
 Operation
@@ -369,7 +381,7 @@ The resource server does not allow this request without authorization.  It
 generates an unguessable, opaque nonce that the server **SHOULD** be able to
 later recognize as having generated. The server responds with an HTTP `401`
 Unauthorized message, and includes the [protection space][] (`realm`), this
-nonce, the appropriate scopes, and the `webid_pop_endpoint` and `webid_tls_endpoint`
+nonce, the appropriate scopes, and the `token_pop_endpoint` and `client_cert_endpoint`
 URIs as appropriate, in the `WWW-Authenticate` header with the `Bearer` method.
 The server **MAY** also include an HTML response body, for example to allow
 the user to perform a first-party login using another method, such as by
@@ -380,8 +392,8 @@ directly in the browser.
 	WWW-Authenticate: Bearer realm="/auth/",
 	    scope="openid webid",
 	    nonce="j16C4SOLQWFor3VYUtZWnrUr5AG5uwDF7q9RFsDk",
-	    webid_pop_endpoint="/auth/webid-pop",
-	    webid_tls_endpoint="https://webid-tls.example.com/auth/webid-tls"
+	    token_pop_endpoint="/auth/webid-pop",
+	    client_cert_endpoint="https://webid-tls.example.com/auth/webid-tls"
 	Access-Control-Allow-Origin: https://other.example.com
 	Access-Control-Expose-Headers: WWW-Authenticate
 	Date: Mon,  6 May 2019 01:48:48 GMT
@@ -391,7 +403,7 @@ directly in the browser.
 
 The agent recognizes the response as compatible with this protocol by recognizing
 the method as `Bearer`, scope `webid`, and the presence of the `nonce` and
-either of the `webid_pop_endpoint` or `webid_tls_endpoint` parameters.
+either of the `token_pop_endpoint` or `client_cert_endpoint` parameters.
 
 ### WebID-OIDC Proof of Possession Operation
 
@@ -407,7 +419,7 @@ claim to the absolute URI of the original request, the `nonce` claim to the
 claim to its `id_token` from above, and signing it with the private keying
 material associated with the `cnf` claim of its `id_token`.
 
-The agent sends a request to the `webid_pop_endpoint` URI, including the
+The agent sends a request to the `token_pop_endpoint` URI, including the
 *proof-token*, and if using the redirect response mode, a `redirect_uri` and
 a `state`.
 
@@ -482,11 +494,11 @@ identifier, and can use those data and any others at its disposal to make a
 determination whether to grant access to the requested resource.
 
 	Client           WebID              OpenID                           Resource
-	App            Document            Provider      webid_pop_endpoint    Server
+	App            Document            Provider      token_pop_endpoint    Server
 	|                  |                  |                  |                  |
 	|-- request URI ----------------------------------------------------------->|
 	|<--------------------------------- 401 Unauthorized Bearer nonce, scope, --|
-	|                  |                  |              webid_pop_endpoint     |
+	|                  |                  |              token_pop_endpoint     |
 	|make proof-token  |                  |                  |                  |
 	|-- send proof-token ----------------------------------->|                  |
 	|                  |                  |                  |extract id_token. |
@@ -522,7 +534,7 @@ determination whether to grant access to the requested resource.
 
 The agent determines to use the WebID-TLS mode.
 
-The agent sends, using its WebID-TLS client certificate, to the `webid_tls_endpoint`
+The agent sends, using its WebID-TLS client certificate, to the `client_cert_endpoint`
 URI. The origin for this URI will probably be different from the original
 request URI, in order for the server to request a client certificate in the
 TLS handshake.  It is assumed that the original server that responded with
@@ -587,14 +599,14 @@ to determine access rights.
 ### Redirect Workflow Considerations
 
 Care **SHOULD** be taken so that the `Location` header in response to the
-`webid_tls_endpoint` is not exposed to browser scripts in redirect-type
+`client_cert_endpoint` is not exposed to browser scripts in redirect-type
 responses. The redirect-type response flow in a browser application is intended
 to only allow a browser application to obtain the returned parameters if the
 redirect was actually followed, indicating the `redirect_uri` is part of the
 application. If the `Location` header can be read directly by the browser
 script from an `XMLHTTPRequest` or `Fetch` response without the redirect being
 followed, any browser application can impersonate any other browser application
-to the `webid_tls_endpoint`.
+to the `client_cert_endpoint`.
 
 The `redirect_uri` (either as part of this API flow or extracted from an
 `id_token`) is not truly secure, but is only a strong indicator that the
@@ -643,17 +655,17 @@ seemingly useful service as well).
 #### Man-In-The-Middle With WebID-TLS
 
 Rogue could attempt to access a restricted resource on Real and obtain a
-`nonce` and `webid_tls_endpoint` URI. Rogue could then challenge User's access
+`nonce` and `client_cert_endpoint` URI. Rogue could then challenge User's access
 request for a Rogue resource with the same `nonce` *and* the same
-`webid_tls_endpoint` from Real.
+`client_cert_endpoint` from Real.
 
-User would contact Real's `webid_tls_endpoint` and obtain an `access_token`.
+User would contact Real's `client_cert_endpoint` and obtain an `access_token`.
 If the call to Real didn't include the original request URI, and instead
 relied only on the `nonce` (or metadata associated with it), User could give
 this token to Rogue which would then be able to use it to access Real.
 
-To ensure Real and User are talking about the same resource, the `webid_tls_endpoint`
-request includes the `uri` in an analogous form to the `webid_pop_endpoint` flow.
+To ensure Real and User are talking about the same resource, the `client_cert_endpoint`
+request includes the `uri` in an analogous form to the `token_pop_endpoint` flow.
 
 #### Man-In-The-Middle With HTTP Redirects
 
@@ -698,7 +710,7 @@ headers (including `Location`), and the server is under no obligation to
 follow any redirect or interpret any pages or scripts at the destination.
 
 Therefore, the `redirect_uri` parameter and the `Origin` (or any other) request
-header **MUST NOT** be used as an application identifier in the `webid_pop_endpoint`,
+header **MUST NOT** be used as an application identifier in the `token_pop_endpoint`,
 since they can be forged by Rogue with no additional input or consent by User.
 Since User trusts her OpenID Provider, a `redirect_uri` extracted from the
 signed `id_token`'s `aud` is the only reliable application identifier, and
@@ -726,6 +738,7 @@ is presented for authorization, since the agent bearing the token could have
 set that header to any value.
 
 
+  [app-auth]:         https://github.com/solid/authorization-and-access-control-panel/blob/master/Proposals/ReplaceTrustedAppsWithTags.md#app-authorization-document
   [CORS]:             https://www.w3.org/TR/cors/
   [OIDC Discovery]:   https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
   [OIDC-SelfIssued]:  https://openid.net/specs/openid-connect-core-1_0.html#SelfIssued
