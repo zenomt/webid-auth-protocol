@@ -175,16 +175,16 @@ A resource server, to challenge an unauthorized request using this protocol,
 will employ a combination of the following parameters in a `WWW-Authenticate`
 header returned in an HTTP `401` response to a request:
 
-  - `scope`: For challenges according to this protocol, the `scope`
-    parameter **SHALL** include at least the `openid` and `webid` scopes;
+  - `scope`: For challenges according to this protocol, the `scope` parameter
+    **SHALL** include at least the `webid` scope;
 
   - `nonce`: This parameter conveys an opaque challenge string to be used as
     described below;
 
   - `token_pop_endpoint`: The URI of the WebID-OIDC POP Token exchange endpoint,
-    if available;
+    if available; `scope` **MUST** also include `openid`;
 
-  - `client_cert_endpoint`: The URI of the WebID-TLS token endpoint, if available.
+  - `client_cert_endpoint`: The URI of the WebID-TLS token endpoint, if available;
 
   - `error`: If present, the request had a problem other than not presenting
     an access credential. The following reason codes are defined:
@@ -243,29 +243,30 @@ source code inspection.
 The Proof of Possession Token (*proof-token*) is a [JWT][RFC7519], signed by
 the `id_token`'s confirmation key, and comprising the following claims:
 
-  - `token`: Required: A WebID-OIDC `id_token` containing a `cnf` claim
+  - `token`: **REQUIRED**: A WebID-OIDC `id_token` containing a `cnf` claim
     as described above, and otherwise valid to identify the user requesting
     access;
 
-  - `aud`: Required: The [absolute URI][], including scheme, authority
+  - `aud`: **REQUIRED**: The [absolute URI][], including scheme, authority
     (host and optional port), path, and query, but not including fragment
     identifier, corresponding to the original request that resulted in the
     HTTP `401` response; this claim **MUST NOT** include a fragment identifier;
     if this claim is an array, it **MUST** have exactly one element;
 
-  - `nonce`: Required: The nonce from the `WWW-Authenticate` challenge;
+  - `nonce`: **REQUIRED**: The nonce from the `WWW-Authenticate` challenge;
 
-  - `iss`: Required: The issuer of this *proof-token*, which **MUST** be
-    present in the `id_token`'s `aud` claim; the value of this claim is used
-    as the application identifier, and therefore **SHOULD** be the `redirect_uri`
-    to which the `id_token` or `code` was sent (see above);
+  - `iss`: **REQUIRED** (for WebID-OIDC): The issuer of this *proof-token*,
+    which **MUST** be present in the `token`'s `aud` claim; the value of
+    this claim is used as the application identifier, and therefore **SHOULD**
+    be the `redirect_uri` to which the `id_token` or `code` was sent (see
+    above);
 
-  - `jti`: Recommended: Use of this claim is **RECOMMENDED** so that the agent
+  - `jti`: **RECOMMENDED**: Use of this claim is recommended so that the agent
     can salt the token's signature; the verifier can ignore this claim, if
     present;
 
-  - `app_authorizations`: **OPTIONAL**: If present, this is one (string) or
-    more (array of strings) [App Authorization][app-auth] URIs;
+  - `app_authorizations`: **OPTIONAL** (for WebID-OIDC): If present, this is
+    one (string) or more (array of strings) [App Authorization][app-auth] URIs;
 
   - `exp`: **OPTIONAL**: If present, this claim **MUST NOT** be after the
     expiration time of the `token`, if it has one, and **MUST NOT** be before
@@ -283,14 +284,15 @@ supported by the server. The API takes the following parameters, either in
 the request body as Content-Type `application/x-www-form-urlencoded` format
 for `POST`, or as URI query parameters for `GET`:
 
-  - `proof_token`: Required: A *proof-token* as described above;
+  - `proof_token`: **REQUIRED**: A *proof-token* as described above;
 
-  - `redirect_uri`: Optional: If present, the response will be made in the
-    form of an HTTP `302` redirect to this URI; otherwise the response will
-    be made in the response body as a JSON object;
+  - `redirect_uri`: **OPTIONAL**: If present, the response will be made in the
+    form of an HTTP `302` redirect to this URI, otherwise the response will
+    be made in the response body as a JSON object; use of this mode is
+    **NOT RECOMMENDED**;
 
-  - `state`: Optional: If present, opaque application state to be echoed
-    back in a redirect response. Only useful if a `redirect_uri` is specified.
+  - `state`: **OPTIONAL**: If present, opaque application state to be echoed
+    back in a redirect response.
 
 A successful response comprises the following parameters:
 
@@ -332,22 +334,23 @@ The API takes the following parameters, either in the request body as Content-Ty
 `application/x-www-form-urlencoded` format for `POST`, or as URI query
 parameters for `GET`:
 
-  - `nonce`: Required: The nonce from the `WWW-Authenticate` challenge;
+  - `nonce`: **REQUIRED**: The nonce from the `WWW-Authenticate` challenge;
 
-  - `uri`: Required: The [absolute URI][], including scheme, authority
+  - `uri`: **REQUIRED**: The [absolute URI][], including scheme, authority
     (host and optional port), path, and query, but not including fragment
     identifier, corresponding to the original request that resulted in the
     HTTP `401` response. This parameter **MUST NOT** include a fragment
     identifier;
 
-  - `app_authorizations`: **OPTIONAL**: Zero or more
+  - `app_authorizations`: **OPTIONAL** (for WebID-TLS): Zero or more
     [App Authorization][app-auth] URIs (may occur more than once);
 
-  - `redirect_uri`: Optional: If present, the response will be made in the
+  - `redirect_uri`: **OPTIONAL**: If present, the response will be made in the
     form of an HTTP `302` redirect to this URI; otherwise the response will
-    be made in the response body as a JSON object.
+    be made in the response body as a JSON object; use of this mode is
+    **NOT RECOMMENDED**;
 
-  - `state`: Optional: If present, opaque application state to be echoed
+  - `state`: **OPTIONAL**: If present, opaque application state to be echoed
     back in a redirect response. Only useful if a `redirect_uri` is specified.
 
 A TLS client certificate is **REQUIRED** when communicating with this API
@@ -407,17 +410,20 @@ either of the `token_pop_endpoint` or `client_cert_endpoint` parameters.
 
 ### WebID-OIDC Proof of Possession Operation
 
-The agent determines to use the WebID-OIDC POP method.
+The agent recognizes availability of the WebID-OIDC POP method (including
+scopes `webid` and `openid` and the `token_pop_endpoint`) and determines to
+use this method.
 
-It is assumed that the agent already possesses a valid `id_token` from the
-user's OP (including a `cnf` confirmation claim), and the private key material
-corresponding to the public key in the `cnf` claim.
+It is assumed that the agent already possesses a valid and current `id_token`
+from the user's OP (including a `cnf` confirmation claim), and the private
+key material corresponding to the public key in the `cnf` claim.
 
 The agent creates a new *proof-token* as described above, setting its `aud`
 claim to the absolute URI of the original request, the `nonce` claim to the
-`nonce` parameter from the `WWW-Authenticate` response header, the `id_token`
-claim to its `id_token` from above, and signing it with the private keying
-material associated with the `cnf` claim of its `id_token`.
+`nonce` parameter from the `WWW-Authenticate` response header, the `token`
+claim to its `id_token` from above, including any [App Authorizations][app-auth],
+and signing it with the private keying material associated with the `cnf`
+claim of its `id_token`.
 
 The agent sends a request to the `token_pop_endpoint` URI, including the
 *proof-token*, and if using the redirect response mode, a `redirect_uri` and
@@ -434,14 +440,14 @@ The endpoint verifies this request:
 
   1. Parses the `proof_token`, extracting its claims;
 
-  2. Parses the `id_token` claim of the `proof_token`, extracting its claims
+  2. Parses the `token` claim of the `proof_token`, extracting its claims
      including the WebID it identifies;
 
-  3. Verifies the `proof_token`'s time claims (`exp` et al.) and `iss`
-     (the `iss` **MUST** be present in the `id_token`'s `aud` claim);
+  3. Verifies the `proof_token`'s `iss` (the `iss` **MUST** be present in the
+     `token`'s `aud` claim);
 
   4. Verifies the signature of the `proof_token` with the `cnf` claim of the
-    `id_token`;
+    `token`;
 
   5. Verifies the `proof_token`'s `aud` is an absolute URI for a resource in
      the protection space for which this endpoint is responsible;
@@ -453,21 +459,25 @@ The endpoint verifies this request:
   7. Loads and parses the WebID document to extract the OIDC Issuer (if
      listed) and public keys (if listed) for the WebID;
 
-  8. Verifies the `id_token` signature. If the `id_token` is
+  8. Verifies the `token` signature. If the `token` is
      [self issued][OIDC-SelfIssued], the public key **MUST** be listed in the
-     WebID.  Otherwise, [OIDC Discovery][], based on the `id_token`'s `iss`
-     claim, is used to find the public key. The `iss` **MUST** be an
-     authorized OIDC issuer.
+     WebID.  Otherwise, [OIDC Discovery][], based on the `token`'s `iss`
+     claim, is used to find the public key. The `iss` **MUST** be an authorized
+     OIDC issuer.
 
   9. Determines the application identifier, which is the `iss` of the
      `proof_token`. The `iss` of the `proof_token` **MUST** be present
      in the `aud` claim of the `id_token`.
 
+ 10. Determines [App Authorizations][app-auth] from the `proof_token`'s
+     `app_authorizations`, if any, that correspond to the application identifier.
+
 If the request is verified, the endpoint issues an `access_token` valid for
 this protection space and for a limited time. The `access_token` **SHOULD**
-be translatable by a server for this protection space into at least the WebID
-and the application identifier, by whatever means is convenient (for example,
-by lookup in a database, or by direct encoding in the access token).
+be translatable by a server for this protection space into at least the WebID,
+the application identifier, and app authorizations, by whatever means is
+convenient (for example, by lookup in a database, or by direct encoding in
+the access token).
 
 	HTTP/2 200
 	Content-type: application/json; charset=utf-8
@@ -489,9 +499,10 @@ header for requests in the same protection space.
 	Origin: https://other.example.com
 	Authorization: Bearer gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ
 
-The server verifies and translates the bearer token into a WebID and application
-identifier, and can use those data and any others at its disposal to make a
-determination whether to grant access to the requested resource.
+The server verifies and translates the bearer token into a WebID, application
+identifier, and app authorizations,and can use those data and any others at
+its disposal to make a determination whether to grant access to the requested
+resource.
 
 	Client           WebID              OpenID                           Resource
 	App            Document            Provider      token_pop_endpoint    Server
@@ -501,23 +512,26 @@ determination whether to grant access to the requested resource.
 	|                  |                  |              token_pop_endpoint     |
 	|make proof-token  |                  |                  |                  |
 	|-- send proof-token ----------------------------------->|                  |
-	|                  |                  |                  |extract id_token. |
-	|                  |                  |                  |verify PT exp,iat,|
-	|                  |                  |                  |iss,aud,nonce,sig.|
-	|                  |                  |                  |verify id_token   |
-	|                  |                  |                  |exp,iat.          |
+	|                  |                  |                  |extract token.    |
+	|                  |                  |                  |verify PT iss,aud,|
+	|                  |                  |                  |nonce,sig. verify |
+	|                  |                  |                  |id_token exp,iat. |
 	|                  |                  |                  |                  |
 	|                  |<---------------------- get WebID ---|                  |
 	|                  |------------------------ document -->|                  |
-	|                  |                  |                  |verify id_token   |
-	|                  |                  |                  |iss is authorized.|
+	|                  |                  |                  |verify token iss  |
+	|                  |                  |                  |is authorized.    |
 	|                  |                  |                  |                  |
 	|                  |                  |<---- get OIDC ---?                  |
-	|                  |                  |------ config --->? (if id_token not |
+	|                  |                  |------ config --->? (if token not    |
 	|                  |                  |<------ get ------?  self-issued)    |
 	|                  |                  |------ jwks ----->?                  |
-	|                  |                  |                  |verify id_token sig.
+	|                  |                  |                  |verify token sig. |
 	|                  |                  |                  |determine app-id. |
+	|                  | App Auths Docs   |                  |                  |
+	|                  |  |<---------------- get app auths --|                  |
+	|                  |  |----------------- document(s) --->|                  |
+	|                  |  |               |                  |determine app auths
 	|                  |                  |                  |                  |
 	|                  |                  |                  |make access_token.|
 	|<--------------------------- answer access_token, exp --|                  |
@@ -532,7 +546,9 @@ determination whether to grant access to the requested resource.
 
 ### WebID-TLS Operation
 
-The agent determines to use the WebID-TLS mode.
+The agent recognizes availability of the WebID-TLS mode (including presence
+of the `webid` `scope` and the `client_cert_endpoint`) and determines to use
+this method.
 
 The agent sends, using its WebID-TLS client certificate, to the `client_cert_endpoint`
 URI. The origin for this URI will probably be different from the original
@@ -549,8 +565,7 @@ server's protection space.
 	
 	nonce=j16C4SOLQWFor3VYUtZWnrUr5AG5uwDF7q9RFsDk
 	&uri=https://www.example.com/some/restricted/resource
-	&redirect_uri=https://other.example.com/app/getbearer.html
-	&state=EehJc1e8dDGz2iazKHy-1VJyWgMmnovRsbeEuqfZ
+	&app_authorizations=https://mike.example/wac/app-auth/b6d88441302c07700743b8d793ae2a8a.ttl#it
 
 The server verifies the request:
 
@@ -569,16 +584,27 @@ The server verifies the request:
 
   4. Determines the application identifier, which is the `redirect_uri` of
      the request if it was given, or the `Origin` header of this request if
-     present, or Unknown.
+     present, or Unknown;
+
+  5. Determines [App Authorizations][app-auth] from the `app_authorizations`,
+     if any, that correspond to the application identifier.
 
 If the request is verified, the server issues an `access_token` valid for the
 original server's protection space and for a limited time. The `access_token`
 **SHOULD** be translatable by any server for the orginal protection space
-into at least the WebID and the application identifier.
+into at least the WebID, application identifier, and app authorizations.
 
-	HTTP/2 302
-	Location: https://other.example.com/app/getbearer.html#access_token=gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ&expires_in=1800&state=EehJc1e8dDGz2iazKHy-1VJyWgMmnovRsbeEuqfZ&token_type=Bearer
+	HTTP/2 200
+	Content-type: application/json; charset=utf-8
+	Cache-control: no-cache, no-store
+	Access-Control-Allow-Origin: https://other.example.com
 	Date: Mon,  6 May 2019 01:48:50 GMT
+	
+	{
+		"access_token": "gZDES1DqHf1i3zydSqfnsgGhkMgc4gcbpnCHSCcQ",
+		"expires_in": 1800,
+		"token_type": "Bearer"
+	}
 
 The agent can now use this `access_token` as a bearer token in the `Authorization`
 header for requests in the same protection space at the original request URI's
