@@ -269,10 +269,15 @@ the `id_token`'s confirmation key, and comprising the following claims:
     one (string) or more (array of strings) [App Authorization][app-auth] URIs;
 
   - `exp`: **OPTIONAL**: If present, this claim **MUST NOT** be after the
-    expiration time of the `token`, if it has one, and **MUST NOT** be before
+    expiration time of the `token` (if it has one), and **MUST NOT** be before
     the current time on the verifier; ordinarily the validity of the `nonce`
     is sufficient to establish not-before and not-after constraints on the
-    proof, so this claim isn't usually necessary.
+    proof, so this claim isn't usually necessary (and clocks on end-user
+    devices, where *proof-tokens* are likely to be generated, are often
+    inaccurate).  The server **MAY** take the expiration periods of the
+    *proof-token* and the `token` into account when determining the expiration
+    period of the access token it issues, but it is not required to do so and
+    is free to issue access tokens with any expiration period.
 
 Unrecognized claims **SHOULD** be ignored.
 
