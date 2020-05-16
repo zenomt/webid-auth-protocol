@@ -243,7 +243,7 @@ source code inspection.
 The Proof of Possession Token (*proof-token*) is a [JWT][RFC7519], signed by
 the `id_token`'s confirmation key, and comprising the following claims:
 
-  - `token`: **REQUIRED**: A WebID-OIDC `id_token` containing a `cnf` claim
+  - `sub`: **REQUIRED**: A WebID-OIDC `id_token` containing a `cnf` claim
     as described above, and otherwise valid to identify the user requesting
     access;
 
@@ -256,7 +256,7 @@ the `id_token`'s confirmation key, and comprising the following claims:
   - `nonce`: **REQUIRED**: The nonce from the `WWW-Authenticate` challenge;
 
   - `iss`: **REQUIRED** (for WebID-OIDC): The issuer of this *proof-token*,
-    which **MUST** be present in the `token`'s `aud` claim; the value of
+    which **MUST** be present in the `sub`'s `aud` claim; the value of
     this claim is used as the application identifier, and therefore **SHOULD**
     be the `redirect_uri` to which the `id_token` or `code` was sent (see
     above);
@@ -269,13 +269,13 @@ the `id_token`'s confirmation key, and comprising the following claims:
     one (string) or more (array of strings) [App Authorization][app-auth] URIs;
 
   - `exp`: **OPTIONAL**: If present, this claim **MUST NOT** be after the
-    expiration time of the `token` (if it has one), and **MUST NOT** be before
+    expiration time of the `sub` (if it has one), and **MUST NOT** be before
     the current time on the verifier; ordinarily the validity of the `nonce`
     is sufficient to establish not-before and not-after constraints on the
     proof, so this claim isn't usually necessary (and clocks on end-user
     devices, where *proof-tokens* are likely to be generated, are often
     inaccurate).  The server **MAY** take the expiration periods of the
-    *proof-token* and the `token` into account when determining the expiration
+    *proof-token* and the `sub` into account when determining the expiration
     period of the access token it issues, but it is not required to do so and
     is free to issue access tokens with any expiration period.
 
@@ -425,7 +425,7 @@ key material corresponding to the public key in the `cnf` claim.
 
 The agent creates a new *proof-token* as described above, setting its `aud`
 claim to the absolute URI of the original request, the `nonce` claim to the
-`nonce` parameter from the `WWW-Authenticate` response header, the `token`
+`nonce` parameter from the `WWW-Authenticate` response header, the `sub`
 claim to its `id_token` from above, including any [App Authorizations][app-auth],
 and signing it with the private keying material associated with the `cnf`
 claim of its `id_token`.
@@ -445,14 +445,14 @@ The endpoint verifies this request:
 
   1. Parses the `proof_token`, extracting its claims;
 
-  2. Parses the `token` claim of the `proof_token`, extracting its claims
-     including the WebID it identifies;
+  2. Parses the `sub` claim of the `proof_token` as the ID Token, extracting
+     its claims including the WebID it identifies;
 
   3. Verifies the `proof_token`'s `iss` (the `iss` **MUST** be present in the
-     `token`'s `aud` claim);
+     ID Token's `aud` claim);
 
   4. Verifies the signature of the `proof_token` with the `cnf` claim of the
-    `token`;
+    ID Token;
 
   5. Verifies the `proof_token`'s `aud` is an absolute URI for a resource in
      the protection space for which this endpoint is responsible;
@@ -464,15 +464,15 @@ The endpoint verifies this request:
   7. Loads and parses the WebID document to extract the OIDC Issuer (if
      listed) and public keys (if listed) for the WebID;
 
-  8. Verifies the `token` signature. If the `token` is
+  8. Verifies the ID Token's signature. If the ID Token is
      [self issued][OIDC-SelfIssued], the public key **MUST** be listed in the
-     WebID.  Otherwise, [OIDC Discovery][], based on the `token`'s `iss`
+     WebID.  Otherwise, [OIDC Discovery][], based on the ID Token's `iss`
      claim, is used to find the public key. The `iss` **MUST** be an authorized
      OIDC issuer.
 
   9. Determines the application identifier, which is the `iss` of the
      `proof_token`. The `iss` of the `proof_token` **MUST** be present
-     in the `aud` claim of the `id_token`.
+     in the `aud` claim of the ID Token.
 
  10. Determines [App Authorizations][app-auth] from the `proof_token`'s
      `app_authorizations`, if any, that correspond to the application identifier.
@@ -517,22 +517,22 @@ resource.
 	|                  |                  |              token_pop_endpoint     |
 	|make proof-token  |                  |                  |                  |
 	|-- send proof-token ----------------------------------->|                  |
-	|                  |                  |                  |extract token.    |
+	|                  |                  |                  |extract ID Token. |
 	|                  |                  |                  |verify PT iss,aud,|
 	|                  |                  |                  |nonce,sig. verify |
-	|                  |                  |                  |id token exp,iat. |
+	|                  |                  |                  |ID Token exp,iat. |
 	|                  |                  |                  |                  |
 	|                  |<---------------------- get WebID ---|                  |
 	|                  |------------------------ document -->|                  |
-	|                  |                  |                  |verify token iss  |
-	|                                     |                  |is authorized.    |
+	|                  |                  |                  |verify ID Token   |
+	|                                     |                  |iss is authorized.|
 	|                                     |                  |                  |
 	|                                     |<---- get OIDC ---?                  |
-	|                                     |------ config --->? (if token not    |
+	|                                     |------ config --->? (if ID Token not |
 	|                                     |<------ get ------?  self-issued)    |
 	|                                     |------ jwks ----->?                  |
-	|                                     |                  |verify token sig. |
-	|               App Auth                                 |determine app-id. |
+	|                                     |                  |vrfy ID Token sig,|
+	|               App Auth                                 |determine app ID. |
 	|              Document(s)                               |                  |
 	|                  |<------------------- get app auth ---|                  |
 	|                  |-------------------- document(s) --->|                  |
