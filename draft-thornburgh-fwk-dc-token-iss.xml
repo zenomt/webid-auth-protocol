@@ -126,7 +126,7 @@ tokens for accessing restricted resources:</t>
 	<li>HTTP header compression schemes such as
 		<xref target="RFC7541">HPACK</xref> can reduce network resource
 		consumption when a token is reused for multiple requests in
-		the same origin;</li>
+		the same origin.</li>
 
 </ul>
 
