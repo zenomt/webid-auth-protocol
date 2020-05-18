@@ -1,19 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
-
-<!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
-    <!ENTITY rfc2119 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml'>
-    <!ENTITY rfc3986 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.3986.xml'>
-    <!ENTITY rfc6749 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.6749.xml'>
-    <!ENTITY rfc6750 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.6750.xml'>
-    <!ENTITY rfc7235 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.7235.xml'>
-    <!ENTITY rfc7519 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.7519.xml'>
-    <!ENTITY rfc7541 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.7541.xml'>
-    <!ENTITY rfc7800 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.7800.xml'>
-    <!ENTITY rfc8174 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.8174.xml'>
-    <!ENTITY rfc8259 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.8259.xml'>
-    <!ENTITY rfc8446 PUBLIC '' 'http://xml.resource.org/public/rfc/bibxml/reference.RFC.8446.xml'>
-]>
+<?xml-stylesheet type='text/xsl' href='rfc7749.xslt' ?>
 
 <?rfc toc="yes" ?>
 <?rfc symrefs="yes" ?>
@@ -23,7 +9,9 @@
 <?rfc compact="yes" ?>
 <?rfc subcompact="no" ?>
 
-<rfc ipr="trust200902" docName="draft-thornburgh-fwk-dc-token-iss-00" submissionType="independent" category="exp">
+<rfc ipr="trust200902" docName="draft-thornburgh-fwk-dc-token-iss-00"
+	submissionType="independent" category="exp" version="3"
+	xmlns:xi="http://www.w3.org/2001/XInclude">
 
 <front>
 	<title abbrev="Decentralized Token Issuance">A Framework For Decentralized Bearer Token Issuance in HTTP</title>
@@ -108,13 +96,13 @@ tokens for accessing restricted resources:</t>
 		properties needed to make access control decisions in the
 		resource server;</li>
 
-	<li>The effort (including computational, cryptographic, and network)
+	<li><t>The effort (including computational, cryptographic, and network)
 		required to establish a client's identity and authorizations
 		can be done once by the client and the authorization service,
 		compiled to a token, and this effort amortized over many
 		requests to the same resource server, with simple revalidation
 		and lifetime semantics that can be influenced by both parties;
-		specifically:
+		specifically:</t>
 
 		<ul>
 			<li>The server's authorization system chooses an expiration
@@ -234,9 +222,9 @@ these <em>auth-params</em>:</t>
 		bearer token. See <xref target="nonce_considerations" /> for
 		considerations on constructing the the challenge nonce.</dd>
 
-	<dt><tt>error</tt></dt><dd>If present, a reason code indicating that
+	<dt><tt>error</tt></dt><dd><t>If present, a reason code indicating that
 		the request had a problem other than not presenting an access
-		token. The following reason codes are initially defined:
+		token. The following reason codes are initially defined:</t>
 
 		<dl>
 			<dt><tt>invalid_token</tt></dt><dd>A bearer token
@@ -857,14 +845,15 @@ of this memo.</t>
 
 <back>
 	<references title="Normative References">
-		&rfc2119; <!-- BCP14 -->
-		&rfc3986; <!-- URI syntax -->
-		&rfc6749; <!-- OAuth framework -->
-		&rfc6750; <!-- Bearer Tokens -->
-		&rfc7235; <!-- HTTP Auth, 2.2=realm -->
-		&rfc7519; <!-- JWT -->
-		&rfc8174; <!-- BCP14 -->
-		&rfc8259; <!-- JSON -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml" /> <!-- BCP14 -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.3986.xml" /> <!-- URI syntax -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.6749.xml" /> <!-- OAuth framework -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.6750.xml" /> <!-- Bearer tokens -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.7235.xml" /> <!-- HTTP Auth -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.7519.xml" /> <!-- JWT -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.8174.xml" /> <!-- BCP14 -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.8259.xml" /> <!-- JSON -->
+
 	</references>
 
 	<references title="Informative References">
@@ -881,9 +870,9 @@ of this memo.</t>
 			</front>
 		</reference>
 
-		&rfc7541; <!-- HPACK -->
-		&rfc7800; <!-- POP Token -->
-		&rfc8446; <!-- TLS -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.7541.xml" /> <!-- HPACK -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.7800.xml" /> <!-- POP Token -->
+		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.8446.xml" /> <!-- TLS -->
 
 		<reference anchor="OpenID.Core" target="https://openid.net/specs/openid-connect-core-1_0.html">
 			<front>
