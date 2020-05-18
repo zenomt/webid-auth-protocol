@@ -811,11 +811,6 @@ requested access.</t>
 
 <section title="Security Considerations">
 
-<!-- 
-<t>XXX bearer token vs client certificate.</t>
-
--->
-
 <t>When using the
 <xref target="token_pop_mechanism">Proof-of-Possession mechanism</xref>, the
 scope designer should carefully consider whether additional information should
