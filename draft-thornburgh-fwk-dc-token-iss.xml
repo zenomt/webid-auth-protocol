@@ -18,6 +18,7 @@
 	<seriesInfo name="Internet-Draft" status="experimental" stream="independent" value="draft-thornburgh-fwk-dc-token-iss-00"/>
 
 	<author initials="M" surname="Thornburgh" fullname="Michael C. Thornburgh">
+		<organization>Adobe</organization>
 		<address>
 			<postal>
 				<street>345 Park Avenue</street>
@@ -47,6 +48,12 @@
 
 	</t></abstract>
 
+	<note>
+		<name>Author's Note</name>
+		<t>This work is an independent contribution and is not associated
+		with, or endorsed by, Adobe.</t>
+	</note>
+
 </front>
 
 <middle>
@@ -57,7 +64,9 @@
 bearer tokens (<relref section="1.2" target="RFC6750" displayFormat="of" />)
 from a resource server's authorization service in order to access protected
 resources on the server. This framework is especially intended for systems
-(such as decentralized identity systems like <xref target="WebID"/>) where
+(such as decentralized identity systems like <xref target="WebID"/>, and
+decentralized social or mashup data systems like the
+<eref target="https://solidproject.org">Solid project</eref>) where
 the client might not have prior knowledge of, or a preexisting direct
 relationship with, the authorization service for the resource server; however,
 it can be applied in other use cases as well.</t>
@@ -143,6 +152,13 @@ realize the benefits listed above:</t>
 	<li>Decentralized identity systems such as WebID and
 		<xref target="DID">Decentralized Identifiers</xref>;</li>
 
+	<li>Centralized or decentralized authorization systems based on
+		<xref target="VC">Verifiable Credentials</xref>;</li>
+
+	<li>Authenticated access to a multitude of decentralized, uncoordinated
+		resource servers, such as for social or mashup data
+		applications;</li>
+
 	<li>Identity systems based on aspects of a TLS client certificate,
 		without requiring use of that certificate for all accesses
 		to a resource server (particularly in browser-based applications,
@@ -156,15 +172,12 @@ realize the benefits listed above:</t>
 
 	<li>Obtaining an audience-constrained bearer token in a centralized,
 		federated, or confederated identity system given an identity
-		bound with a pre-shared public key;</li>
-
-	<li>Centralized or decentralized authorization systems based on
-		<xref target="VC">Verifiable Credentials</xref>.</li>
+		bound with a pre-shared public key.</li>
 
 </ul>
 
-<t>This list of use cases should not be construed as limiting. Other effective
-applications of this framework are possible.</t>
+<t>This list of use cases should not be construed as exhaustive or limiting.
+Other effective applications of this framework are possible.</t>
 
 </section> <!-- Use Cases -->
 </section> <!-- Motivation -->
@@ -220,7 +233,7 @@ these <em>auth-params</em>:</t>
 	<dt><tt>nonce</tt></dt><dd><bcp14>REQUIRED</bcp14>: An opaque (to the
 		client) string to be included unmodified when requesting a
 		bearer token. See <xref target="nonce_considerations" /> for
-		considerations on constructing the the challenge nonce.</dd>
+		considerations on constructing the challenge nonce.</dd>
 
 	<dt><tt>error</tt></dt><dd><t>If present, a reason code indicating that
 		the request had a problem other than not presenting an access
