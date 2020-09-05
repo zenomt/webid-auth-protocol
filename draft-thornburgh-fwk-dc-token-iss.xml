@@ -9,26 +9,23 @@
 <?rfc compact="yes" ?>
 <?rfc subcompact="no" ?>
 
-<rfc ipr="trust200902" docName="draft-thornburgh-fwk-dc-token-iss-00"
+<rfc ipr="trust200902" docName="draft-thornburgh-fwk-dc-token-iss-01"
 	submissionType="independent" category="exp" version="3"
 	xmlns:xi="http://www.w3.org/2001/XInclude">
 
 <front>
 	<title abbrev="Decentralized Token Issuance">A Framework For Decentralized Bearer Token Issuance in HTTP</title>
-	<seriesInfo name="Internet-Draft" status="experimental" stream="independent" value="draft-thornburgh-fwk-dc-token-iss-00"/>
+	<seriesInfo name="Internet-Draft" status="experimental" stream="independent" value="draft-thornburgh-fwk-dc-token-iss-01"/>
 
 	<author initials="M" surname="Thornburgh" fullname="Michael C. Thornburgh">
-		<organization>Adobe</organization>
 		<address>
 			<postal>
-				<street>345 Park Avenue</street>
-				<city>San Jose</city>
+				<city>Santa Cruz</city>
 				<region>CA</region>
-				<code>95110-2704</code>
+				<code>95060-1950</code>
 				<country>US</country>
 			</postal>
-			<phone>+1 408 536 6000</phone>
-			<email>mthornbu@adobe.com</email>
+			<email>zenomt@zenomt.com</email>
 			<uri>https://zenomt.zenomt.com/card.ttl#me</uri>
 		</address>
 	</author>
@@ -47,12 +44,6 @@
 		also described.
 
 	</t></abstract>
-
-	<note>
-		<name>Author's Note</name>
-		<t>This work is an independent contribution and is not associated
-		with, or endorsed by, Adobe.</t>
-	</note>
 
 </front>
 
@@ -644,11 +635,12 @@ requested access.</t>
 
 <t>The client recognizes the availability of, and its compatibility with,
 this mechanism, by recognizing combinations of challenge scopes with which
-it is compatible, the presence of the <tt>client_cert_endpoint</tt>, and
-either direct control of an appropriate <xref target="RFC8446">TLS</xref>
-client certificate and its signing key, or in the case of browser-based
-Javascript applications, an assumption that such a certificate is configured
-into the browser and that it will be selected by the user.</t>
+it is compatible, the presence of the <tt>client_cert_endpoint</tt> and the
+<tt>nonce</tt>, and either direct control of an appropriate
+<xref target="RFC8446">TLS</xref> client certificate and its signing key, or
+in the case of browser-based Javascript applications, an assumption that such
+a certificate is configured into the browser and that it will be selected by
+the user.</t>
 
 <t>The client constructs and sends a token request to the
 <xref target="client_cert_api"> <tt>client_cert_endpoint</tt> API URI with
@@ -852,6 +844,9 @@ of this memo.</t>
 </middle>
 
 <back>
+	<references>
+	<name>References</name>
+
 	<references title="Normative References">
 		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml" /> <!-- BCP14 -->
 		<xi:include href="http://xml.resource.org/public/rfc/bibxml/reference.RFC.3986.xml" /> <!-- URI syntax -->
@@ -894,6 +889,19 @@ of this memo.</t>
 			</front>
 		</reference>
 
+		<reference anchor="VC" target="https://www.w3.org/TR/vc-data-model/">
+			<front>
+				<title>Verifiable Credentials Data Model 1.0</title>
+				<author initials="M." surname="Sporny" />
+				<author initials="D." surname="Longley" />
+				<author initials="D." surname="Chadwick" />
+				<author initials="G." surname="Noble" role="editor" />
+				<author initials="D." surname="Burnett" role="editor" />
+				<author initials="B." surname="Zundel" role="editor" />
+				<date month="November" year="2019" />
+			</front>
+		</reference>
+
 		<reference anchor="WebID" target="https://www.w3.org/2005/Incubator/webid/spec/identity/">
 			<front>
 				<title>WebID 1.0: Web Identity and Discovery</title>
@@ -916,19 +924,8 @@ of this memo.</t>
 				<date month="March" year="2014" />
 			</front>
 		</reference>
+	</references>
 
-		<reference anchor="VC" target="https://www.w3.org/TR/vc-data-model/">
-			<front>
-				<title>Verifiable Credentials Data Model 1.0</title>
-				<author initials="M." surname="Sporny" />
-				<author initials="D." surname="Longley" />
-				<author initials="D." surname="Chadwick" />
-				<author initials="G." surname="Noble" role="editor" />
-				<author initials="D." surname="Burnett" role="editor" />
-				<author initials="B." surname="Zundel" role="editor" />
-				<date month="November" year="2019" />
-			</front>
-		</reference>
 	</references>
 </back>
 
